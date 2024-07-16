@@ -604,7 +604,7 @@ def convert_to_wav(input_file, output_file=None):
     return output_file
 
 
-# Insert here 1
+
 def create_subtitle_files(text_file, output_srt, output_sbv):
 
     # Read the text file
@@ -670,7 +670,37 @@ def create_subtitle_files(text_file, output_srt, output_sbv):
         file.write(sbv_content)
 
 
-# Insert here 2
+
+def extract_notes(pptx_path, output_dir, zip_file_path):
+    # Create the output directory if it doesn't exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Open the PowerPoint file
+    presentation = Presentation(pptx_path)
+
+    # List to hold the paths of the created text files
+    text_files = []
+
+    # Extract notes and slides from each slide and save to individual text files
+    for slide_number, slide in enumerate(presentation.slides, start=1):
+        txt_file_path = os.path.join(output_dir, f"slide_{slide_number}.txt")
+        with open(txt_file_path, "w", encoding="utf-8") as txt_file:
+            # Extract the slide notes
+            if slide.notes_slide:
+                notes_text = slide.notes_slide.notes_text_frame.text
+                txt_file.write(notes_text)
+            else:
+                txt_file.write("No notes.")
+
+            text_files.append(txt_file_path)
+
+    # Create a zip file and add all the text files to it
+    with zipfile.ZipFile(zip_file_path, 'w') as zipf:
+        for text_file in text_files:
+            zipf.write(text_file, os.path.basename(text_file))
+
+    return zip_file_path
 
 
 
