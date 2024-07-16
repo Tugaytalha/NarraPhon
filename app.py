@@ -585,6 +585,44 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
 
 
 # Insert here 3
+def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedding_scale):
+    try:
+        if audio_file is not None and text_input:
+            # Making sure it is a wav file
+            audio_file = convert_to_wav(audio_file)
+
+            ref_s = compute_style(audio_file)
+            text_chunks = txtsplit(text_input)
+
+            synthesized_audio_list = []
+            for chunk in text_chunks:
+                synthesized_audio_chunk = inference(chunk, ref_s, alpha, beta, diffusion_steps,
+                                                    embedding_scale)  # [:-int(0.40 * 24000)] # Delete last 350 ms which says garbage "for" for fixing weird pulse at the end
+                synthesized_audio_list.append(synthesized_audio_chunk)
+
+            synthesized_audio = np.concatenate(synthesized_audio_list, axis=0)
+
+            # Convert to 16-bit PCM
+            synthesized_audio = (synthesized_audio * 32767).astype(np.int16)
+
+
+            ## Speed up the audio
+            #synthesized_audio_segment = AudioSegment(
+            #    synthesized_audio.tobytes(),
+            #    frame_rate=24000,
+            #    sample_width=synthesized_audio.dtype.itemsize,
+            #    channels=1
+            #)
+            #synthesized_audio_segment = synthesized_audio_segment.speedup(playback_speed=1.05)
+#
+            ## Convert back to numpy array
+            #synthesized_audio = np.array(synthesized_audio_segment.get_array_of_samples())
+
+            return (24000, synthesized_audio), "Success: Speech generated successfully."
+
+        return None, "Error: Audio file or text input is missing."
+    except Exception as e:
+        return None, str(e)
 
 
 def convert_to_wav(input_file, output_file=None):
