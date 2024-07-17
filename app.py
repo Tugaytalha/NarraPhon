@@ -1,13 +1,9 @@
 # TODO List:
 ## 1. Optimize imports
 ## 3. Delete unnecessary libs from env
-## 4. Add subtitle sync from mp3 + txt to srt
 ## 5. Test multitreading
-## 6. Add subtitle generator
-## 7. Vıdeo output with font
-## 8. Huawei okunus
-## 9. Subtitle lenght
 ## 10. Not to do list while prepeare input
+## 4. Add subtitle sync from mp3 + txt to srt
 
 import gc
 import glob
@@ -586,7 +582,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
     else:
         return None, None, "Error: Audio file is missing."
 
-def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.srt", incorrect_words = ["hue-away", "hueaway", "hueAway", "whoaway", "huawei", "raw away", "raw way", "raw-way", "raw-away", "who away", "who-away"], correct_word="Huawei"):
+def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.srt", incorrect_words = ["hue-away", "Woway", "wo way", "hueaway", "hueAway", "whoaway", "huawei", "raw away", "raw way", "raw-way", "raw-away", "who away", "who-away"], correct_word="Huawei"):
     # Read the content of the SRT file
     with open(file_path, 'r', encoding='utf-8') as file:
         content = file.read()
