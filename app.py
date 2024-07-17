@@ -1,9 +1,13 @@
 # TODO List:
 ## 1. Optimize imports
-## 2. Export images from pptx
 ## 3. Delete unnecessary libs from env
 ## 4. Add subtitle sync from mp3 + txt to srt
 ## 5. Test multitreading
+## 6. Add subtitle generator
+## 7. Vıdeo output with font
+## 8. Huawei okunus
+## 9. Subtitle lenght
+## 10. Not to do list while prepeare input
 
 import scipy.io.wavfile as wavfile
 import io
@@ -20,6 +24,8 @@ from models import *
 from utils import *
 from text_utils import TextCleaner
 from Utils.PLBERT.util import load_plbert
+from moviepy.editor import *
+from moviepy.video.tools.subtitles import SubtitlesClip
 import torch
 import glob
 import gc
@@ -412,8 +418,6 @@ def generate_recursively(audio_file, directory, alpha, beta, diffusion_steps, em
             with open(txt_file, "r", encoding=file_encoding) as f:
                 file.write(f.read() + "\n")
 
-    create_subtitle_files(directory + "/concatenated.txt", directory + "/subtitle.srt", directory + "/subtitle.sbv")
-
     # Create generated_voices directory if it doesn't exist
     if not os.path.exists(directory + "/generated_voices"):
         os.makedirs(directory + "/generated_voices")
@@ -428,7 +432,8 @@ def generate_recursively(audio_file, directory, alpha, beta, diffusion_steps, em
 
                 if output:
                     # Get the output file name with convert txt to mp3 and adding generated_voices to the path
-                    output_file = txt_file.replace(".txt", ".mp3").replace(directory + "/", directory + "/generated_voices/")
+                    output_file = txt_file.replace(".txt", ".mp3").replace(directory + "/",
+                                                                           directory + "/generated_voices/")
 
                     # Save the generated speech as an MP3 file
                     wav_file = "temp.wav"
@@ -453,9 +458,7 @@ def generate_recursively(audio_file, directory, alpha, beta, diffusion_steps, em
     # Concatenate the generated files
     generated_files = glob.glob(os.path.join(directory + "/generated_voices", '**', '*.mp3'), recursive=True)
     # Sort the generated files
-    print(generated_files)
     generated_files.sort(key=natural_keys)
-    print(generated_files)
     audio = AudioSegment.from_file(generated_files[0])
     for file in generated_files[1:]:
         audio += AudioSegment.from_file(file)
@@ -467,23 +470,24 @@ def generate_recursively(audio_file, directory, alpha, beta, diffusion_steps, em
 def gen_from_text(audio_file, text, alpha, beta, diffusion_steps, embedding_scale):
     voice, message = generate_speech(audio_file, text, alpha, beta, diffusion_steps, embedding_scale)
 
+    #
+
     # Save the generated speech as an MP3 file
     wav_file = "temp.wav"
     wavfile.write(wav_file, *voice)
     audio = AudioSegment.from_file(wav_file)
     audio.export("output.mp3", format="mp3")
 
-    # Delete the .wav file
-    os.remove(wav_file)
-
     # Zip the single file
     with zipfile.ZipFile("output.zip", 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write("output.mp3")
 
-    return "output.zip", "output.mp3", message
+    return "output.zip", "temp.wav", message
+
 
 def atoi(text):
     return int(text) if text.isdigit() else text
+
 
 def natural_keys(text):
     '''
@@ -491,7 +495,8 @@ def natural_keys(text):
     http://nedbatchelder.com/blog/200712/human_sorting.html
     (See Toothy's implementation in the comments)
     '''
-    return [ atoi(c) for c in re.split(r'(\d+)', text) ]
+    return [atoi(c) for c in re.split(r'(\d+)', text)]
+
 
 def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file, pptx_inp,
                    alpha, beta, diffusion_steps, embedding_scale):
@@ -506,7 +511,6 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
     if os.path.exists("generated.zip"):
         os.remove("generated.zip")
 
-
     # Make sure the audio file is a WAV file
     if audio_file is not None:
         audio_file = convert_to_wav(audio_file)
@@ -519,7 +523,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
                 text_input = f.read()
             result = gen_from_text(audio_file, text_input, alpha, beta, diffusion_steps, embedding_scale)
 
-        elif text_input_type == "ZIP File":
+        elif text_input_type.startswith("ZIP File"):
 
             # Extract zip file
             with zipfile.ZipFile(zip_file, 'r') as zip_ref:
@@ -529,6 +533,16 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
             generate_recursively(audio_file, output_dir, alpha, beta, diffusion_steps, embedding_scale)
 
             print("Generated all files")
+
+            print("Generating subtitle...")
+            os.system(
+                f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=2 --max_line_width=60 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
+            print("Subtitle generated")
+
+            print("Creating video...")
+            create_video()
+            print("Video created")
+
             # Zip the generated files
             zip_output = "generated.zip"
             with zipfile.ZipFile(zip_output, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -567,24 +581,83 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
             # Delete the PDF file
             os.remove(pptx_inp.replace('.pptx', '.pdf'))
 
-            result = parse_generate(audio_file, "ZIP File", None, None, zip_file_path, None, alpha, beta, diffusion_steps,
-                                  embedding_scale)
+            result = parse_generate(audio_file, "ZIP FileP", None, None, zip_file_path, None, alpha, beta,
+                                    diffusion_steps,
+                                    embedding_scale)
 
         # Delete the generated files if they exist
         if os.path.exists("output.mp3"):
-           os.remove("output.mp3")
+            os.remove("output.mp3")
         if os.path.exists("notes.zip"):
-           os.remove("notes.zip")
+            os.remove("notes.zip")
         if os.path.exists("extracted_notes"):
-           # delete recursively and force delete
-           os.system("rm -rf extracted_notes || true")
+            # delete recursively and force delete
+            os.system("rm -rf extracted_notes || true")
         return result
 
     else:
         return None, None, "Error: Audio file is missing."
 
 
-# Insert here 3
+def create_video(folder_path="extracted", output_path="extracted/output_video.mp4", font="Huawei-Sans-Bold",
+                 font_size=48):
+    # Determine the number of files
+    num_slides = len([name for name in os.listdir(f"{folder_path}/images") if os.path.isfile(name)])
+    max_len = len(str(num_slides))
+
+    # List of images and corresponding audio files
+    image_files = [f"{folder_path}/images/slide-{str(i).zfill(max_len)}.jpg" for i in range(1, num_slides)]
+    audio_files = [f"{folder_path}/generated_voices/slide_{i}.mp3" for i in range(1, num_slides)]
+    subtitle_file = f"{folder_path}/generated_subtitle/concatenated.srt"
+
+    # Check if the audio files exist if not replace with none
+    for audio_file in audio_files:
+        if not os.path.exists(audio_file):
+            audio_files[audio_files.index(audio_file)] = None
+
+    # List to hold the video clips
+    video_clips = []
+
+    # Create video clips from images and corresponding audio
+    for image, audio in zip(image_files, audio_files):
+        try:
+            # Load image
+            image_clip = ImageClip(image)
+
+            if audio is not None:
+                # Load audio
+                audio_clip = AudioFileClip(audio)
+
+                # Set the duration of the image to the duration of the audio
+                image_clip = image_clip.set_duration(audio_clip.duration)
+
+                # Set the audio to the image
+                image_clip = image_clip.set_audio(audio_clip)
+            else:
+                # Set the duration of the image to 3 seconds
+                image_clip = image_clip.set_duration(3)
+
+            # Append the clip to the list
+            video_clips.append(image_clip)
+
+        except Exception as e:
+            print(f"Error creating video clip: {e}")
+
+    # Concatenate all video clips
+    final_video = concatenate_videoclips(video_clips)
+
+    # Add subtitles
+    generator = lambda txt: TextClip(txt, font=font, fontsize=font_size, color='white', stroke_color='black',
+                                     stroke_width=0.5)
+    subs = SubtitlesClip(subtitle_file, generator)
+    subtitles = SubtitlesClip(subs, generator)
+
+    final_video = CompositeVideoClip([final_video, subtitles.set_pos(('center', 'bottom'))])
+
+    # Write the final output
+    final_video.write_videofile(output_path, fps=24)
+
+
 def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedding_scale):
     try:
         if audio_file is not None and text_input:
@@ -596,8 +669,19 @@ def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedd
 
             synthesized_audio_list = []
             for chunk in text_chunks:
+                pFlag = False
+
+                # Check if the chunk ends with a punctuation
+                if chunk[-1] not in [".", "!", "?", ",", ";", ":"]:
+                    pFlag = True
+                    chunk = chunk + "."
+                print(chunk)
                 synthesized_audio_chunk = inference(chunk, ref_s, alpha, beta, diffusion_steps,
                                                     embedding_scale)  # [:-int(0.40 * 24000)] # Delete last 350 ms which says garbage "for" for fixing weird pulse at the end
+
+                if pFlag:
+                    synthesized_audio_chunk = synthesized_audio_chunk[:-int(0.1 * 24000)]
+
                 synthesized_audio_list.append(synthesized_audio_chunk)
 
             synthesized_audio = np.concatenate(synthesized_audio_list, axis=0)
@@ -605,18 +689,17 @@ def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedd
             # Convert to 16-bit PCM
             synthesized_audio = (synthesized_audio * 32767).astype(np.int16)
 
-
             ## Speed up the audio
-            #synthesized_audio_segment = AudioSegment(
+            # synthesized_audio_segment = AudioSegment(
             #    synthesized_audio.tobytes(),
             #    frame_rate=24000,
             #    sample_width=synthesized_audio.dtype.itemsize,
             #    channels=1
-            #)
-            #synthesized_audio_segment = synthesized_audio_segment.speedup(playback_speed=1.05)
-#
+            # )
+            # synthesized_audio_segment = synthesized_audio_segment.speedup(playback_speed=1.05)
+            #
             ## Convert back to numpy array
-            #synthesized_audio = np.array(synthesized_audio_segment.get_array_of_samples())
+            # synthesized_audio = np.array(synthesized_audio_segment.get_array_of_samples())
 
             return (24000, synthesized_audio), "Success: Speech generated successfully."
 
@@ -642,9 +725,7 @@ def convert_to_wav(input_file, output_file=None):
     return output_file
 
 
-
 def create_subtitle_files(text_file, output_srt, output_sbv):
-
     # Read the text file
     with open(text_file, 'r') as file:
         text = file.read().splitlines()
@@ -708,7 +789,6 @@ def create_subtitle_files(text_file, output_srt, output_sbv):
         file.write(sbv_content)
 
 
-
 def extract_notes(pptx_path, output_dir, zip_file_path):
     # Create the output directory if it doesn't exist
     if not os.path.exists(output_dir):
@@ -739,7 +819,6 @@ def extract_notes(pptx_path, output_dir, zip_file_path):
             zipf.write(text_file, os.path.basename(text_file))
 
     return zip_file_path
-
 
 
 def update_input_fields(input_type):
@@ -816,4 +895,4 @@ with gr.Blocks() as iface:
                         outputs=[zip_output, audio_output, message_output])
 
 if __name__ == "__main__":
-    iface.launch( server_port=7861, share=True) #server_name="0.0.0.0",
+    iface.launch(server_port=7861, share=True)  # server_name="0.0.0.0",
