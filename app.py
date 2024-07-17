@@ -9,27 +9,18 @@
 ## 9. Subtitle lenght
 ## 10. Not to do list while prepeare input
 
-import scipy.io.wavfile as wavfile
-import io
+import gc
+import glob
+import re
+
 import gradio as gr
-import time
-import yaml
-import torch
-import torchaudio
-import librosa
-from nltk.tokenize import word_tokenize
+import scipy.io.wavfile as wavfile
 from Models import *
 from Utils import *
 from models import *
-from utils import *
-from text_utils import TextCleaner
-from Utils.PLBERT.util import load_plbert
 from moviepy.editor import *
 from moviepy.video.tools.subtitles import SubtitlesClip
-import torch
-import glob
-import gc
-import re
+from utils import *
 
 torch.manual_seed(0)
 torch.backends.cudnn.benchmark = False
@@ -44,14 +35,9 @@ import numpy as np
 np.random.seed(0)
 
 # load packages
-import time
-import random
 import yaml
-from munch import Munch
 import numpy as np
 import torch
-from torch import nn
-import torch.nn.functional as F
 import torchaudio
 import librosa
 from nltk.tokenize import word_tokenize
@@ -63,7 +49,6 @@ from utils import *
 from text_utils import TextCleaner
 from txtsplit import txtsplit
 from pydub import AudioSegment
-import os
 from pptx import Presentation
 import zipfile
 import os
@@ -74,6 +59,8 @@ to_mel = torchaudio.transforms.MelSpectrogram(
     n_mels=80, n_fft=2048, win_length=1200, hop_length=300)
 mean, std = -4, 4
 
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def length_to_mask(lengths):
     mask = torch.arange(lengths.max()).unsqueeze(0).expand(lengths.shape[0], -1).type_as(lengths)
@@ -102,7 +89,6 @@ def compute_style(path):
     return torch.cat([ref_s, ref_p], dim=1)
 
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # load phonemizer
 import phonemizer
@@ -529,19 +515,21 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
             with zipfile.ZipFile(zip_file, 'r') as zip_ref:
                 zip_ref.extractall(output_dir)
 
-            # Generate speech recursively
+            # generate speech recursively
             generate_recursively(audio_file, output_dir, alpha, beta, diffusion_steps, embedding_scale)
 
-            print("Generated all files")
+            print("generated all files")
 
-            print("Generating subtitle...")
+            print("generating subtitle...")
             os.system(
                 f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=2 --max_line_width=60 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
-            print("Subtitle generated")
+            correct_mistaken_words()
+            print("subtitle generated")
 
-            print("Creating video...")
-            create_video()
-            print("Video created")
+            if text_input_type == "ZIP FileP":
+                print("Creating video...")
+                create_video()
+                print("Video created")
 
             # Zip the generated files
             zip_output = "generated.zip"
@@ -598,16 +586,36 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
     else:
         return None, None, "Error: Audio file is missing."
 
+def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.srt", incorrect_words = ["hue-away", "hueaway", "hueAway", "whoaway", "huawei", "raw away", "raw way", "raw-way", "raw-away", "who away", "who-away"], correct_word="Huawei"):
+    # Read the content of the SRT file
+    with open(file_path, 'r', encoding='utf-8') as file:
+        content = file.read()
+
+    # Create a regular expression pattern to find the incorrect words
+    pattern = re.compile('|'.join(re.escape(word) for word in incorrect_words), re.IGNORECASE)
+
+    # Replace the incorrect words with the correct word
+    corrected_content = pattern.sub(correct_word, content)
+
+    # Write the corrected content back to the SRT file
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.write(corrected_content)
+
+    print("Mistaken words corrected successfully.")
+
 
 def create_video(folder_path="extracted", output_path="extracted/output_video.mp4", font="Huawei-Sans-Bold",
                  font_size=48):
     # Determine the number of files
-    num_slides = len([name for name in os.listdir(f"{folder_path}/images") if os.path.isfile(name)])
+    num_slides = len(os.listdir(f"{folder_path}/images/"))
     max_len = len(str(num_slides))
 
+    print(num_slides)
+    print(max_len)
+
     # List of images and corresponding audio files
-    image_files = [f"{folder_path}/images/slide-{str(i).zfill(max_len)}.jpg" for i in range(1, num_slides)]
-    audio_files = [f"{folder_path}/generated_voices/slide_{i}.mp3" for i in range(1, num_slides)]
+    image_files = [f"{folder_path}/images/slide-{str(i).zfill(max_len)}.jpg" for i in range(1, num_slides+1)]
+    audio_files = [f"{folder_path}/generated_voices/slide_{i}.mp3" for i in range(1, num_slides+1)]
     subtitle_file = f"{folder_path}/generated_subtitle/concatenated.srt"
 
     # Check if the audio files exist if not replace with none
@@ -618,6 +626,8 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
     # List to hold the video clips
     video_clips = []
 
+    print(image_files)
+    print(audio_files)
     # Create video clips from images and corresponding audio
     for image, audio in zip(image_files, audio_files):
         try:
@@ -648,14 +658,25 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
 
     # Add subtitles
     generator = lambda txt: TextClip(txt, font=font, fontsize=font_size, color='white', stroke_color='black',
-                                     stroke_width=0.5)
+                                     stroke_width=2.5)
     subs = SubtitlesClip(subtitle_file, generator)
     subtitles = SubtitlesClip(subs, generator)
 
     final_video = CompositeVideoClip([final_video, subtitles.set_pos(('center', 'bottom'))])
 
+    # Determine thread number
+    thread_count = os.cpu_count() - 1 if os.cpu_count() > 1 else 1
+
+    # Determine if h254_nvenc is available
+    if os.system("ffmpeg -encoders | grep h264_nvenc ") == 0:
+        codec = "h264_nvenc "
+    # elif os.system("ffmpeg -encoders | grep h264_videotoolbox") == 0:
+    #     codec = "h264_videotoolbox"
+    # else:
+    #     codec = "libx264"
+    codec = "libx264"
     # Write the final output
-    final_video.write_videofile(output_path, fps=24)
+    final_video.write_videofile(output_path, fps=24, codec=codec, threads=thread_count, audio_codec="aac")
 
 
 def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedding_scale):
@@ -669,6 +690,8 @@ def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedd
 
             synthesized_audio_list = []
             for chunk in text_chunks:
+                # Replace Huawei to Whoaway
+                chunk = chunk.replace("Huawei", "Whoaway")
                 pFlag = False
 
                 # Check if the chunk ends with a punctuation
@@ -863,11 +886,11 @@ with gr.Blocks() as iface:
             txt_radio = gr.Radio(["Plain Text", "TXT File", "ZIP File", "PowerPoint File"],
                                  label="Input Type")
             txt_box = gr.Textbox(lines=2, placeholder="Enter text to synthesize", label="Text to Synthesize",
-                                 visible=True)
+                                 visible=False)
             txt_inp = gr.File(label="Upload a TXT file", type="filepath", file_types=[".txt"], visible=False)
             zip_inp = gr.File(label="Upload a ZIP file", type="filepath", file_types=[".zip"], visible=False)
             pptx_inp = gr.File(label="Upload a PowerPoint file to generate from notes", type="filepath",
-                               file_types=[".pptx"])
+                               file_types=[".pptx"], visible=False)
 
             with gr.Row():
                 with gr.Column():
