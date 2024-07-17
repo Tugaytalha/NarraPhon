@@ -585,6 +585,44 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
 
 
 # Insert here 3
+def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedding_scale):
+    try:
+        if audio_file is not None and text_input:
+            # Making sure it is a wav file
+            audio_file = convert_to_wav(audio_file)
+
+            ref_s = compute_style(audio_file)
+            text_chunks = txtsplit(text_input)
+
+            synthesized_audio_list = []
+            for chunk in text_chunks:
+                synthesized_audio_chunk = inference(chunk, ref_s, alpha, beta, diffusion_steps,
+                                                    embedding_scale)  # [:-int(0.40 * 24000)] # Delete last 350 ms which says garbage "for" for fixing weird pulse at the end
+                synthesized_audio_list.append(synthesized_audio_chunk)
+
+            synthesized_audio = np.concatenate(synthesized_audio_list, axis=0)
+
+            # Convert to 16-bit PCM
+            synthesized_audio = (synthesized_audio * 32767).astype(np.int16)
+
+
+            ## Speed up the audio
+            #synthesized_audio_segment = AudioSegment(
+            #    synthesized_audio.tobytes(),
+            #    frame_rate=24000,
+            #    sample_width=synthesized_audio.dtype.itemsize,
+            #    channels=1
+            #)
+            #synthesized_audio_segment = synthesized_audio_segment.speedup(playback_speed=1.05)
+#
+            ## Convert back to numpy array
+            #synthesized_audio = np.array(synthesized_audio_segment.get_array_of_samples())
+
+            return (24000, synthesized_audio), "Success: Speech generated successfully."
+
+        return None, "Error: Audio file or text input is missing."
+    except Exception as e:
+        return None, str(e)
 
 
 def convert_to_wav(input_file, output_file=None):
@@ -604,10 +642,104 @@ def convert_to_wav(input_file, output_file=None):
     return output_file
 
 
-# Insert here 1
+
+def create_subtitle_files(text_file, output_srt, output_sbv):
+
+    # Read the text file
+    with open(text_file, 'r') as file:
+        text = file.read().splitlines()
+
+    # Initialize subtitle counters and time
+    srt_content = ""
+    sbv_content = ""
+    subtitle_count = 1
+    start_time = 0
+
+    # Process each line of text
+    for line in text:
+        # Estimate duration based on number of words (adjust as needed)
+        duration = len(line.split()) * 500  # Assume 500ms per word
+        end_time = start_time + duration
+
+        # Format time for SRT (HH:MM:SS,mmm)
+        srt_start = '{:02d}:{:02d}:{:02d},{:03d}'.format(
+            start_time // 3600000,
+            (start_time % 3600000) // 60000,
+            (start_time % 60000) // 1000,
+            start_time % 1000
+        )
+        srt_end = '{:02d}:{:02d}:{:02d},{:03d}'.format(
+            end_time // 3600000,
+            (end_time % 3600000) // 60000,
+            (end_time % 60000) // 1000,
+            end_time % 1000
+        )
+
+        # Format time for SBV (H:MM:SS.mmm)
+        sbv_start = '{:01d}:{:02d}:{:02d}.{:03d}'.format(
+            start_time // 3600000,
+            (start_time % 3600000) // 60000,
+            (start_time % 60000) // 1000,
+            start_time % 1000
+        )
+        sbv_end = '{:01d}:{:02d}:{:02d}.{:03d}'.format(
+            end_time // 3600000,
+            (end_time % 3600000) // 60000,
+            (end_time % 60000) // 1000,
+            end_time % 1000
+        )
+
+        # Add to SRT content
+        srt_content += f"{subtitle_count}\n{srt_start} --> {srt_end}\n{line}\n\n"
+
+        # Add to SBV content
+        sbv_content += f"{sbv_start},{sbv_end}\n{line}\n\n"
+
+        # Update for next subtitle
+        start_time = end_time
+        subtitle_count += 1
+
+    # Write SRT file
+    with open(output_srt, 'w') as file:
+        file.write(srt_content)
+
+    # Write SBV file
+    with open(output_sbv, 'w') as file:
+        file.write(sbv_content)
 
 
-# Insert here 2
+
+def extract_notes(pptx_path, output_dir, zip_file_path):
+    # Create the output directory if it doesn't exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Open the PowerPoint file
+    presentation = Presentation(pptx_path)
+
+    # List to hold the paths of the created text files
+    text_files = []
+
+    # Extract notes and slides from each slide and save to individual text files
+    for slide_number, slide in enumerate(presentation.slides, start=1):
+        txt_file_path = os.path.join(output_dir, f"slide_{slide_number}.txt")
+        with open(txt_file_path, "w", encoding="utf-8") as txt_file:
+            # Extract the slide notes
+            if slide.notes_slide:
+                notes_text = slide.notes_slide.notes_text_frame.text
+                txt_file.write(notes_text)
+            else:
+                txt_file.write("No notes.")
+
+            text_files.append(txt_file_path)
+
+    # Create a zip file and add all the text files to it
+    with zipfile.ZipFile(zip_file_path, 'w') as zipf:
+        for text_file in text_files:
+            zipf.write(text_file, os.path.basename(text_file))
+
+    return zip_file_path
+
 
 
 def update_input_fields(input_type):
