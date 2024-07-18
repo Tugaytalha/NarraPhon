@@ -479,6 +479,29 @@ def natural_keys(text):
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
+def correct_known_mistakes():
+    # Huawei
+    correct_mistaken_words()
+    # R&D
+    correct_mistaken_words(incorrect_words=["R and D"], correct_word="R&D")
+    # O&M
+    correct_mistaken_words(incorrect_words=["O and M"], correct_word="O&M")
+    # Slash
+    correct_mistaken_words(incorrect_words=["slash"], correct_word="/")
+    # 6G
+    correct_mistaken_words(incorrect_words=["6 G", "6-G"], correct_word="6G")
+    # 5G
+    correct_mistaken_words(incorrect_words=["5 G", "5-G"], correct_word="5G")
+    # 4G
+    correct_mistaken_words(incorrect_words=["4 G", "4-G"], correct_word="4G")
+    # 3G
+    correct_mistaken_words(incorrect_words=["3 G", "3-G"], correct_word="3G")
+    # 2G
+    correct_mistaken_words(incorrect_words=["2 G", "2-G"], correct_word="2G")
+    # DevSecOps
+    correct_mistaken_words(incorrect_words=["DevSecUps"], correct_word="DevSecOps")
+
+
 def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file, pptx_inp,
                    alpha, beta, diffusion_steps, embedding_scale):
     # Clear the memory
@@ -516,15 +539,12 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
             print("generated all files")
 
             print("generating subtitle...")
-            os.system(
-                f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=2 --max_line_width=60 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
+            #os.system(f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=2 --max_line_width=60 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
+            os.system( f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=1 --max_line_width=70 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
 
             # Fix known subtitle mistakes starting withHuawei's
-            correct_mistaken_words()
-            # R&D
-            correct_mistaken_words(incorrect_words=["R and D"], correct_word="R&D")
-            # O&M
-            correct_mistaken_words(incorrect_words=["O and M"], correct_word="O&M")
+            correct_known_mistakes()
+
             print("subtitle generated")
 
             if text_input_type == "ZIP FileP":
@@ -610,7 +630,7 @@ def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.
 
 
 def create_video(folder_path="extracted", output_path="extracted/output_video.avi", font="Huawei-Sans-Bold",
-                 font_size=48):
+                 font_size=44):
     # Determine the number of files
     num_slides = len(os.listdir(f"{folder_path}/images/"))
     max_len = len(str(num_slides))
@@ -663,11 +683,11 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.av
 
     # Add subtitles
     generator = lambda txt: TextClip(txt, font=font, fontsize=font_size, color='white', stroke_color='black',
-                                     stroke_width=2.5)
+                                     stroke_width=2.8)
     subs = SubtitlesClip(subtitle_file, generator)
     subtitles = SubtitlesClip(subs, generator)
 
-    final_video = CompositeVideoClip([final_video, subtitles.set_pos(('center', 'bottom'))])
+    final_video = CompositeVideoClip([final_video, subtitles.set_position(("center", 0.9), relative=True)])
 
     # Determine thread number
     thread_count = os.cpu_count() - 1 if os.cpu_count() > 1 else 1
@@ -708,7 +728,7 @@ def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedd
                                                     embedding_scale)  # [:-int(0.40 * 24000)] # Delete last 350 ms which says garbage "for" for fixing weird pulse at the end
 
                 if pFlag:
-                    synthesized_audio_chunk = synthesized_audio_chunk[:-int(0.1 * 24000)]
+                    synthesized_audio_chunk = synthesized_audio_chunk[:-int(0.5 * 24000)]
 
                 synthesized_audio_list.append(synthesized_audio_chunk)
 
