@@ -482,10 +482,15 @@ def natural_keys(text):
 def correct_known_mistakes():
     # Huawei
     correct_mistaken_words()
-    # R&D
-    correct_mistaken_words(incorrect_words=["R and D"], correct_word="R&D")
-    # O&M
-    correct_mistaken_words(incorrect_words=["O and M"], correct_word="O&M")
+    # &
+    srt_file_path='./extracted/generated.srt'
+    with open(srt_file_path, "r") as file:
+        content = file.read()
+    content = re.sub(r'(?<=\b\w) and (?=\w\b)', '&', content)
+    
+    with open(srt_file_path, "w") as file:
+        file.write(content)
+    
     # Slash
     correct_mistaken_words(incorrect_words=["slash"], correct_word="/")
     # 6G
