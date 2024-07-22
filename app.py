@@ -410,7 +410,7 @@ def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_st
             with open(txt_file, 'r', encoding=file_encoding) as file:
                 content = file.read()
                 content = content.replace("-", " ")
-                output = generate_speech(audio_file, content, alpha, beta, diffusion_steps, embedding_scale)
+                output = generate_speech(audio_file, content, speed, alpha, beta, diffusion_steps, embedding_scale)
 
                 if output:
                     # Get the output file name with convert txt to mp3 and adding generated_voices to the path
