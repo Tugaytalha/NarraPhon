@@ -388,7 +388,8 @@ def split_text(text, max_length=50):
     return chunks
 
 
-def generate_recursively(audio_file, directory, alpha, beta, diffusion_steps, embedding_scale, file_encoding="utf-8"):
+def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_steps, embedding_scale,
+                         file_encoding="utf-8"):
     # Use glob to find all .txt files recursively
     txt_files = glob.glob(os.path.join(directory, '**', '*.txt'), recursive=True)
 
@@ -448,10 +449,9 @@ def generate_recursively(audio_file, directory, alpha, beta, diffusion_steps, em
     audio.export(directory + "/concatenated.mp3", format="mp3")
 
 
-def gen_from_text(audio_file, text, alpha, beta, diffusion_steps, embedding_scale):
-    voice, message = generate_speech(audio_file, text, alpha, beta, diffusion_steps, embedding_scale)
-
-    #
+def gen_from_text(audio_file, text, speed, alpha, beta, diffusion_steps, embedding_scale):
+    # Generate speech from the text
+    voice, message = generate_speech(audio_file, text, speed, alpha, beta, diffusion_steps, embedding_scale)
 
     # Save the generated speech as an MP3 file
     wav_file = "temp.wav"
@@ -503,7 +503,7 @@ def correct_known_mistakes():
 
 
 def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file, pptx_inp,
-                   alpha, beta, diffusion_steps, embedding_scale):
+                   speed, alpha, beta, diffusion_steps, embedding_scale):
     # Clear the memory
     gc.collect()
 
@@ -520,12 +520,12 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
         audio_file = convert_to_wav(audio_file)
 
         if text_input_type == "Plain Text":
-            result = gen_from_text(audio_file, text_input, alpha, beta, diffusion_steps, embedding_scale)
+            result = gen_from_text(audio_file, text_input, speed, alpha, beta, diffusion_steps, embedding_scale)
 
         if text_input_type == "TXT File":
             with open(text_file, "r") as f:
                 text_input = f.read()
-            result = gen_from_text(audio_file, text_input, alpha, beta, diffusion_steps, embedding_scale)
+            result = gen_from_text(audio_file, text_input, speed, alpha, beta, diffusion_steps, embedding_scale)
 
         elif text_input_type.startswith("ZIP File"):
 
@@ -534,13 +534,14 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
                 zip_ref.extractall(output_dir)
 
             # generate speech recursively
-            generate_recursively(audio_file, output_dir, alpha, beta, diffusion_steps, embedding_scale)
+            generate_recursively(audio_file, output_dir, speed, alpha, beta, diffusion_steps, embedding_scale)
 
             print("generated all files")
 
             print("generating subtitle...")
-            #os.system(f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=2 --max_line_width=60 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
-            os.system( f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=1 --max_line_width=70 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
+            # os.system(f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=2 --max_line_width=60 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
+            os.system(
+                f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=1 --max_line_width=70 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
 
             # Fix known subtitle mistakes starting withHuawei's
             correct_known_mistakes()
@@ -590,7 +591,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
             # Delete the PDF file
             os.remove(pptx_inp.replace('.pptx', '.pdf'))
 
-            result = parse_generate(audio_file, "ZIP FileP", None, None, zip_file_path, None, alpha, beta,
+            result = parse_generate(audio_file, "ZIP FileP", None, None, zip_file_path, None, speed, alpha, beta,
                                     diffusion_steps,
                                     embedding_scale)
 
@@ -704,7 +705,7 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.av
     final_video.write_videofile(output_path, fps=24, codec="mpeg4", threads=thread_count, audio_codec="aac")
 
 
-def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedding_scale):
+def generate_speech(audio_file, text_input, speed, alpha, beta, diffusion_steps, embedding_scale):
     try:
         if audio_file is not None and text_input:
             # Making sure it is a wav file
@@ -737,17 +738,17 @@ def generate_speech(audio_file, text_input, alpha, beta, diffusion_steps, embedd
             # Convert to 16-bit PCM
             synthesized_audio = (synthesized_audio * 32767).astype(np.int16)
 
-            ## Speed up the audio
-            # synthesized_audio_segment = AudioSegment(
-            #    synthesized_audio.tobytes(),
-            #    frame_rate=24000,
-            #    sample_width=synthesized_audio.dtype.itemsize,
-            #    channels=1
-            # )
-            # synthesized_audio_segment = synthesized_audio_segment.speedup(playback_speed=1.05)
-            #
-            ## Convert back to numpy array
-            # synthesized_audio = np.array(synthesized_audio_segment.get_array_of_samples())
+            # Speed up the audio
+            synthesized_audio_segment = AudioSegment(
+                synthesized_audio.tobytes(),
+                frame_rate=24000,
+                sample_width=synthesized_audio.dtype.itemsize,
+                channels=1
+            )
+            synthesized_audio_segment = synthesized_audio_segment.speedup(playback_speed=speed)
+
+            # Convert back to numpy array
+            synthesized_audio = np.array(synthesized_audio_segment.get_array_of_samples())
 
             return (24000, synthesized_audio), "Success: Speech generated successfully."
 
@@ -923,6 +924,7 @@ with gr.Blocks() as iface:
                 with gr.Column():
                     submit_button = gr.Button(value="Submit")
 
+            speed_slider = gr.Slider(minimum=0.5, maximum=1.5, value=1.0, label="Speed")
             alpha_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.3, label="Alpha")
             beta_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.7, label="Beta")
             diffusion_slider = gr.Slider(minimum=1, maximum=10, value=5, label="Diffusion Steps")
@@ -938,7 +940,8 @@ with gr.Blocks() as iface:
                      outputs=[txt_box, txt_inp, zip_inp, pptx_inp, audio_output, zip_output])
 
     submit_button.click(parse_generate,
-                        inputs=[audio_file, txt_radio, txt_box, txt_inp, zip_inp, pptx_inp, alpha_slider, beta_slider,
+                        inputs=[audio_file, txt_radio, txt_box, txt_inp, zip_inp, pptx_inp, speed_slider, alpha_slider,
+                                beta_slider,
                                 diffusion_slider, embedding_slider],
                         outputs=[zip_output, audio_output, message_output])
 
