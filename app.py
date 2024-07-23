@@ -639,7 +639,7 @@ def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.
     print("Mistaken words corrected successfully.")
 
 
-def create_video(folder_path="extracted", output_path="extracted/output_video.avi", font="Huawei-Sans-Bold",
+def create_video(folder_path="extracted", output_path="extracted/output_video.mp4", font="Huawei-Sans-Bold",
                  font_size=44):
     # Determine the number of files
     num_slides = len(os.listdir(f"{folder_path}/images/"))
@@ -706,7 +706,7 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.av
     # #     codec = "libx264"
 
     # Write the final output
-    final_video.write_videofile(output_path, fps=24, codec="mpeg4", threads=thread_count, audio_codec="aac")
+    final_video.write_videofile(output_path, fps=24, codec="libx264", threads=thread_count, audio_codec="aac")
 
 
 def generate_speech(audio_file, text_input, speed, alpha, beta, diffusion_steps, embedding_scale):
