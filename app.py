@@ -487,7 +487,7 @@ def correct_known_mistakes():
     # Huawei
     correct_mistaken_words()
     # &
-    srt_file_path='./extracted/generated.srt'
+    srt_file_path='./extracted/generated_subtitle/concatenated.srt'
     with open(srt_file_path, "r") as file:
         content = file.read()
     content = re.sub(r'(?<=\b\w) and (?=\w\b)', '&', content)
