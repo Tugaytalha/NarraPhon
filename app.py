@@ -17,6 +17,10 @@ from models import *
 from moviepy.editor import *
 from moviepy.video.tools.subtitles import SubtitlesClip
 from utils import *
+import sox
+import librosa
+import soundfile as sf
+from shutil import copyfile
 
 torch.manual_seed(0)
 torch.backends.cudnn.benchmark = False
@@ -636,9 +640,6 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.av
     num_slides = len(os.listdir(f"{folder_path}/images/"))
     max_len = len(str(num_slides))
 
-    print(num_slides)
-    print(max_len)
-
     # List of images and corresponding audio files
     image_files = [f"{folder_path}/images/slide-{str(i).zfill(max_len)}.jpg" for i in range(1, num_slides + 1)]
     audio_files = [f"{folder_path}/generated_voices/slide_{i}.mp3" for i in range(1, num_slides + 1)]
@@ -652,8 +653,6 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.av
     # List to hold the video clips
     video_clips = []
 
-    print(image_files)
-    print(audio_files)
     # Create video clips from images and corresponding audio
     for image, audio in zip(image_files, audio_files):
         try:
@@ -738,22 +737,52 @@ def generate_speech(audio_file, text_input, speed, alpha, beta, diffusion_steps,
             # Convert to 16-bit PCM
             synthesized_audio = (synthesized_audio * 32767).astype(np.int16)
 
-            # Speed up the audio
-            synthesized_audio_segment = AudioSegment(
-                synthesized_audio.tobytes(),
-                frame_rate=24000,
-                sample_width=synthesized_audio.dtype.itemsize,
-                channels=1
-            )
-            synthesized_audio_segment = synthesized_audio_segment.speedup(playback_speed=speed)
+            # Write the synthesized audio to a temp file
+            wavfile.write("temp.wav", 24000, synthesized_audio)
 
-            # Convert back to numpy array
-            synthesized_audio = np.array(synthesized_audio_segment.get_array_of_samples())
+            # Speed up with sox
+            if speed >= 1:
+                # Create a Transformer object
+                tfm = sox.Transformer()
+
+                # Set the tempo change (speed change)
+                tfm.tempo(speed)
+
+                # Apply the transformation and save the output file
+                tfm.build("temp.wav", "temp2.wav")
+
+                # Read back with pydub
+                synthesized_audio = AudioSegment.from_file("temp2.wav")
+            # Slow down with librosa
+            elif speed < 1:
+                # Load the audio file
+                y, sr = librosa.load("temp.wav", sr=None)  # sr=None ensures the original sampling rate is used
+
+                # Change the speed
+                y_fast = librosa.effects.time_stretch(y, rate=speed)
+
+                # Save the altered audio file
+                sf.write("temp2.wav", y_fast, sr)
+            # Just create temp2.wav
+            else:
+                # Copy the temp file
+                copyfile("temp.wav", "temp2.wav")
+
+            # Read back with pydub
+            synthesized_audio = AudioSegment.from_file("temp2.wav")
+
+            # Convert to numpy array
+            synthesized_audio = np.array(synthesized_audio.get_array_of_samples())
+
+            # Delete the temp file
+            os.remove("temp.wav")
+            os.remove("temp2.wav")
 
             return (24000, synthesized_audio), "Success: Speech generated successfully."
 
         return None, "Error: Audio file or text input is missing."
     except Exception as e:
+        print(e)
         return None, str(e)
 
 
