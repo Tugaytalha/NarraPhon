@@ -509,7 +509,12 @@ def correct_known_mistakes():
     correct_mistaken_words(incorrect_words=["2 G", "2-G"], correct_word="2G")
     # DevSecOps
     correct_mistaken_words(incorrect_words=["DevSecUps"], correct_word="DevSecOps")
-
+    # DevOps
+    correct_mistaken_words(incorrect_words=["DevUps"], correct_word="DevOps")
+    # PerfTest
+    correct_mistaken_words(incorrect_words=["Perf Test"], correct_word="PerfTest")
+    # Retry
+    correct_mistaken_words(incorrect_words=["REIT"], correct_word="retry")
 
 def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file, pptx_inp,
                    speed, alpha, beta, diffusion_steps, embedding_scale):
@@ -619,7 +624,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
 
 
 def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.srt",
-                           incorrect_words=["hue-away", "Woway", "wo way", "hueaway", "hueAway", "whoaway", "huawei",
+                           incorrect_words=["heal way","hue-away", "Woway", "wo way", "hueaway", "hueAway", "whoaway", "huawei",
                                             "raw away", "raw way", "raw-way", "raw-away", "who away", "who-away"],
                            correct_word="Huawei"):
     # Read the content of the SRT file
@@ -705,8 +710,11 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
     # # else:
     # #     codec = "libx264"
 
-    # Write the final output
-    final_video.write_videofile(output_path, fps=24, codec="libx264", threads=thread_count, audio_codec="aac")
+    try:
+        # Write the final output
+        final_video.write_videofile(output_path, fps=24, codec="libx264", threads=thread_count, audio_codec="aac")
+    except Exception as e:
+        print(f"Error writing video: {e}")
 
 
 def generate_speech(audio_file, text_input, speed, alpha, beta, diffusion_steps, embedding_scale):
