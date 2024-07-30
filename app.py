@@ -463,9 +463,14 @@ def gen_from_text(audio_file, text, speed, alpha, beta, diffusion_steps, embeddi
     audio = AudioSegment.from_file(wav_file)
     audio.export("output.mp3", format="mp3")
 
-    # Zip the single file
+    # # Create subtitle
+    # os.system(
+    #     f"whisper output.mp3 --model small --language English --max_line_count=2 --max_line_width=60 --word_timestamps=True --output_dir . --output_format=srt")
+
+    # Zip the generated files
     with zipfile.ZipFile("output.zip", 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write("output.mp3")
+        # zipf.write("output.srt")
 
     return "output.zip", "temp.wav", message
 
@@ -487,16 +492,16 @@ def correct_known_mistakes():
     # Huawei
     correct_mistaken_words()
     # &
-    srt_file_path='./extracted/generated_subtitle/concatenated.srt'
+    srt_file_path = './extracted/generated_subtitle/concatenated.srt'
     with open(srt_file_path, "r") as file:
         content = file.read()
     content = re.sub(r'(?<=\b\w) and (?=\w\b)', '&', content)
-    
+
     with open(srt_file_path, "w") as file:
         file.write(content)
-    
+
     # Slash
-    correct_mistaken_words(incorrect_words=["slash"], correct_word="/")
+    correct_mistaken_words(incorrect_words=["-slash-", "slash"], correct_word="/")
     # 6G
     correct_mistaken_words(incorrect_words=["6 G", "6-G"], correct_word="6G")
     # 5G
@@ -515,6 +520,7 @@ def correct_known_mistakes():
     correct_mistaken_words(incorrect_words=["Perf Test"], correct_word="PerfTest")
     # Retry
     correct_mistaken_words(incorrect_words=["REIT"], correct_word="retry")
+
 
 def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file, pptx_inp,
                    speed, alpha, beta, diffusion_steps, embedding_scale):
@@ -624,7 +630,8 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
 
 
 def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.srt",
-                           incorrect_words=["heal way","hue-away", "Woway", "wo way", "hueaway", "hueAway", "whoaway", "huawei",
+                           incorrect_words=["heal way", "hue-away", "Woway", "wo way", "hueaway", "hueAway", "whoaway",
+                                            "huawei",
                                             "raw away", "raw way", "raw-way", "raw-away", "who away", "who-away"],
                            correct_word="Huawei"):
     # Read the content of the SRT file
@@ -915,10 +922,10 @@ def extract_notes(pptx_path, output_dir, zip_file_path):
 def update_input_fields(input_type):
     if input_type == "Plain Text":
         return gr.update(visible=True), gr.update(visible=False), gr.update(visible=False), gr.update(
-            visible=False), gr.update(visible=True), gr.update(visible=False)
+            visible=False), gr.update(visible=True), gr.update(visible=True)
     elif input_type == "TXT File":
         return gr.update(visible=False), gr.update(visible=True), gr.update(visible=False), gr.update(
-            visible=False), gr.update(visible=True), gr.update(visible=False)
+            visible=False), gr.update(visible=True), gr.update(visible=True)
     elif input_type == "ZIP File":
         return gr.update(visible=False), gr.update(visible=False), gr.update(visible=True), gr.update(
             visible=False), gr.update(visible=False), gr.update(visible=True)
@@ -946,46 +953,62 @@ def update_input_fields(input_type):
 # )
 
 # Make upper part of the interface as block
-with gr.Blocks() as iface:
-    with gr.Row():
-        # define inputs
-        with gr.Column():
-            audio_file = gr.Audio(label="Upload a reference audio file", type="filepath")
-            txt_radio = gr.Radio(["Plain Text", "TXT File", "ZIP File", "PowerPoint File"],
-                                 label="Input Type")
-            txt_box = gr.Textbox(lines=2, placeholder="Enter text to synthesize", label="Text to Synthesize",
-                                 visible=False)
-            txt_inp = gr.File(label="Upload a TXT file", type="filepath", file_types=[".txt"], visible=False)
-            zip_inp = gr.File(label="Upload a ZIP file", type="filepath", file_types=[".zip"], visible=False)
-            pptx_inp = gr.File(label="Upload a PowerPoint file to generate from notes", type="filepath",
-                               file_types=[".pptx"], visible=False)
 
+def generate_subtitles(audio_file, language):
+    pass
+
+with gr.Blocks() as iface:
+    with gr.Tabs():
+        with gr.TabItem("Voice Cloning"):
+            with gr.Row():
+                # define inputs
+                with gr.Column():
+                    audio_file = gr.Audio(label="Upload a reference audio file", type="filepath")
+                    txt_radio = gr.Radio(["Plain Text", "TXT File", "ZIP File", "PowerPoint File"], label="Input Type")
+                    txt_box = gr.Textbox(lines=2, placeholder="Enter text to synthesize", label="Text to Synthesize", visible=False)
+                    txt_inp = gr.File(label="Upload a TXT file", type="filepath", file_types=[".txt"], visible=False)
+                    zip_inp = gr.File(label="Upload a ZIP file", type="filepath", file_types=[".zip"], visible=False)
+                    pptx_inp = gr.File(label="Upload a PowerPoint file to generate from notes", type="filepath", file_types=[".pptx"], visible=False)
+
+                    with gr.Row():
+                        with gr.Column():
+                            clear_button = gr.ClearButton(value="Clear")
+                        with gr.Column():
+                            submit_button = gr.Button(value="Submit")
+
+                    speed_slider = gr.Slider(minimum=0.5, maximum=1.5, value=1.0, label="Speed")
+                    alpha_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.3, label="Alpha")
+                    beta_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.7, label="Beta")
+                    diffusion_slider = gr.Slider(minimum=1, maximum=10, value=5, label="Diffusion Steps")
+                    embedding_slider = gr.Slider(minimum=0.0, maximum=3.0, value=1.0, label="Embedding Scale")
+
+                with gr.Column():
+                    # define outputs
+                    audio_output = gr.Audio(label="Synthesized Audio", visible=True)
+                    zip_output = gr.File(label="Download ZIP file", visible=False)
+                    message_output = gr.Textbox(label="Message")
+
+            txt_radio.change(update_input_fields, inputs=[txt_radio], outputs=[txt_box, txt_inp, zip_inp, pptx_inp, audio_output, zip_output])
+
+            submit_button.click(parse_generate,
+                                inputs=[audio_file, txt_radio, txt_box, txt_inp, zip_inp, pptx_inp, speed_slider, alpha_slider, beta_slider, diffusion_slider, embedding_slider],
+                                outputs=[zip_output, audio_output, message_output])
+
+        with gr.TabItem("Subtitle Generator"):
             with gr.Row():
                 with gr.Column():
-                    clear_button = gr.ClearButton(value="Clear")
+                    subtitle_audio_file = gr.Audio(label="Upload an audio file", type="filepath")
+                    language = gr.Dropdown(["English", "Spanish", "French", "German"], label="Language")
+
+                    with gr.Row():
+                        with gr.Column():
+                            generate_subtitles_button = gr.Button(value="Generate Subtitles")
+
                 with gr.Column():
-                    submit_button = gr.Button(value="Submit")
+                    subtitles_output = gr.Textbox(label="Generated Subtitles")
 
-            speed_slider = gr.Slider(minimum=0.5, maximum=1.5, value=1.0, label="Speed")
-            alpha_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.3, label="Alpha")
-            beta_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.7, label="Beta")
-            diffusion_slider = gr.Slider(minimum=1, maximum=10, value=5, label="Diffusion Steps")
-            embedding_slider = gr.Slider(minimum=0.0, maximum=3.0, value=1.0, label="Embedding Scale")
+            generate_subtitles_button.click(generate_subtitles, inputs=[subtitle_audio_file, language], outputs=[subtitles_output])
 
-        with gr.Column():
-            # define outputs
-            audio_output = gr.Audio(label="Synthesized Audio", visible=True)
-            zip_output = gr.File(label="Download ZIP file", visible=False)
-            message_output = gr.Textbox(label="Message")
-
-    txt_radio.change(update_input_fields, inputs=[txt_radio],
-                     outputs=[txt_box, txt_inp, zip_inp, pptx_inp, audio_output, zip_output])
-
-    submit_button.click(parse_generate,
-                        inputs=[audio_file, txt_radio, txt_box, txt_inp, zip_inp, pptx_inp, speed_slider, alpha_slider,
-                                beta_slider,
-                                diffusion_slider, embedding_slider],
-                        outputs=[zip_output, audio_output, message_output])
 
 if __name__ == "__main__":
     iface.launch(server_port=7861, share=True)  # server_name="0.0.0.0",
