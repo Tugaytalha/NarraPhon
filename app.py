@@ -408,6 +408,10 @@ def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_st
     if not os.path.exists(directory + "/generated_voices"):
         os.makedirs(directory + "/generated_voices")
 
+    # Create generated_subtitle directory if it doesn't exist
+    if not os.path.exists(directory + "/generated_subtitle"):
+        os.makedirs(directory + "/generated_subtitle")
+
     print("Generating speech for all text files...")
     for txt_file in txt_files:
         try:
@@ -432,6 +436,17 @@ def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_st
 
                     # Delete the .txt file
                     os.remove(txt_file)
+
+                    # Generate subtitle
+                    subtitle_directory = directory + "/generated_subtitle"
+                    subtitle_file = txt_file.replace(".txt", ".srt").replace(directory + "/", subtitle_directory + "/")
+
+                    # Create subtitle
+                    os.system(
+                        f"whisper {output_file} --model small --language English --max_line_count=1 --max_line_width=80 --word_timestamps=True --output_dir {subtitle_directory} --output_format=srt")
+
+                    # Fix known subtitle mistakes
+                    correct_known_mistakes(subtitle_file)
 
 
         except Exception as e:
@@ -488,11 +503,11 @@ def natural_keys(text):
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
-def correct_known_mistakes():
+def correct_known_mistakes(file_path="extracted/generated_subtitle/concatenated.srt"):
     # Huawei
-    correct_mistaken_words()
+    correct_mistaken_words(file_path=file_path)
     # &
-    srt_file_path = './extracted/generated_subtitle/concatenated.srt'
+    srt_file_path = file_path
     with open(srt_file_path, "r") as file:
         content = file.read()
     content = re.sub(r'(?<=\b\w) and (?=\w\b)', '&', content)
@@ -501,25 +516,27 @@ def correct_known_mistakes():
         file.write(content)
 
     # Slash
-    correct_mistaken_words(incorrect_words=["-slash-", "slash"], correct_word="/")
+    correct_mistaken_words(incorrect_words=["-slash-", "slash"], correct_word="/", file_path=file_path)
+    # CodeArts
+    correct_mistaken_words(incorrect_words=["Code Arts"], correct_word="CodeArts", file_path=file_path)
     # 6G
-    correct_mistaken_words(incorrect_words=["6 G", "6-G"], correct_word="6G")
+    correct_mistaken_words(incorrect_words=["6 G", "6-G"], correct_word="6G", file_path=file_path)
     # 5G
-    correct_mistaken_words(incorrect_words=["5 G", "5-G"], correct_word="5G")
+    correct_mistaken_words(incorrect_words=["5 G", "5-G"], correct_word="5G", file_path=file_path)
     # 4G
-    correct_mistaken_words(incorrect_words=["4 G", "4-G"], correct_word="4G")
+    correct_mistaken_words(incorrect_words=["4 G", "4-G"], correct_word="4G", file_path=file_path)
     # 3G
-    correct_mistaken_words(incorrect_words=["3 G", "3-G"], correct_word="3G")
+    correct_mistaken_words(incorrect_words=["3 G", "3-G"], correct_word="3G", file_path=file_path)
     # 2G
-    correct_mistaken_words(incorrect_words=["2 G", "2-G"], correct_word="2G")
+    correct_mistaken_words(incorrect_words=["2 G", "2-G"], correct_word="2G", file_path=file_path)
     # DevSecOps
-    correct_mistaken_words(incorrect_words=["DevSecUps"], correct_word="DevSecOps")
+    correct_mistaken_words(incorrect_words=["DevSecUps"], correct_word="DevSecOps", file_path=file_path)
     # DevOps
-    correct_mistaken_words(incorrect_words=["DevUps"], correct_word="DevOps")
+    correct_mistaken_words(incorrect_words=["DevUps"], correct_word="DevOps", file_path=file_path)
     # PerfTest
-    correct_mistaken_words(incorrect_words=["Perf Test"], correct_word="PerfTest")
+    correct_mistaken_words(incorrect_words=["Perf Test"], correct_word="PerfTest", file_path=file_path)
     # Retry
-    correct_mistaken_words(incorrect_words=["REIT"], correct_word="retry")
+    correct_mistaken_words(incorrect_words=["REIT"], correct_word="retry", file_path=file_path)
 
 
 def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file, pptx_inp,
@@ -559,12 +576,12 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
             print("generated all files")
 
             print("generating subtitle...")
-            # os.system(f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=2 --max_line_width=60 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
-            os.system(
-                f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=1 --max_line_width=70 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
-
-            # Fix known subtitle mistakes starting withHuawei's
-            correct_known_mistakes()
+            # # os.system(f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=2 --max_line_width=60 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
+            # os.system(
+            #     f"whisper {output_dir}/concatenated.mp3 --model small --language English --max_line_count=1 --max_line_width=70 --word_timestamps=True --output_dir {output_dir}/generated_subtitle --output_format=srt")
+            #
+            # # Fix known subtitle mistakes starting withHuawei's
+            # correct_known_mistakes()
 
             print("subtitle generated")
 
@@ -660,7 +677,7 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
     # List of images and corresponding audio files
     image_files = [f"{folder_path}/images/slide-{str(i).zfill(max_len)}.jpg" for i in range(1, num_slides + 1)]
     audio_files = [f"{folder_path}/generated_voices/slide_{i}.mp3" for i in range(1, num_slides + 1)]
-    subtitle_file = f"{folder_path}/generated_subtitle/concatenated.srt"
+    subtitle_files = [f"{folder_path}/generated_subtitle/slide_{i}.srt" for i in range(1, num_slides + 1)]
 
     # Check if the audio files exist if not replace with none
     for audio_file in audio_files:
@@ -671,7 +688,7 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
     video_clips = []
 
     # Create video clips from images and corresponding audio
-    for image, audio in zip(image_files, audio_files):
+    for image, audio, subtitle_file in zip(image_files, audio_files, subtitle_files):
         try:
             # Load image
             image_clip = ImageClip(image)
@@ -685,6 +702,15 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
 
                 # Set the audio to the image
                 image_clip = image_clip.set_audio(audio_clip)
+
+                # Add subtitles
+                generator = lambda txt: TextClip(txt, font=font, fontsize=font_size, color='white', stroke_color='black',
+                                                 stroke_width=2.8)
+                subs = SubtitlesClip(subtitle_file, generator)
+                subtitles = SubtitlesClip(subs, generator)
+
+                image_clip = CompositeVideoClip([image_clip, subtitles.set_position(("center", 0.9), relative=True)])
+
             else:
                 # Set the duration of the image to 3 seconds
                 image_clip = image_clip.set_duration(3)
@@ -698,13 +724,6 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
     # Concatenate all video clips
     final_video = concatenate_videoclips(video_clips)
 
-    # Add subtitles
-    generator = lambda txt: TextClip(txt, font=font, fontsize=font_size, color='white', stroke_color='black',
-                                     stroke_width=2.8)
-    subs = SubtitlesClip(subtitle_file, generator)
-    subtitles = SubtitlesClip(subs, generator)
-
-    final_video = CompositeVideoClip([final_video, subtitles.set_position(("center", 0.9), relative=True)])
 
     # Determine thread number
     thread_count = os.cpu_count() - 1 if os.cpu_count() > 1 else 1
@@ -893,31 +912,30 @@ def generate_subtitles(audio_file, language):
     # Clear the memory
     gc.collect()
 
+    # Delete temp files if they exist
+    if os.path.exists("temp.srt"):
+        os.remove("temp.srt")
+
     output_dir = "subtitles"
 
-    # Ensure output directory exists
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
+    print("Generating subtitles...")
     # Convert the audio file to WAV if necessary
     audio_file = convert_to_wav(audio_file)
 
     # Define the command for generating subtitles
-    whisper_command = f"whisper {audio_file} --model small --language {language} --max_line_count=1 --max_line_width=70 --word_timestamps=True --output_format=srt"
+    whisper_command = f"whisper {audio_file} --model small --language {language} --max_line_count=1 --max_line_width=70 --word_timestamps=True --output_dir ./ --output_format=srt"
 
     # Run the command
     os.system(whisper_command)
+    print("Subtitles generated")
 
-    # Get the subtitle file
-    subtitle_file = audio_file.replace(".wav", ".srt")
+    # Take subtitle file name as after last "/" in audio file name
+    subtitle_file = audio_file.split("/")[-1].replace(".wav", ".srt")
 
-    # Check if the subtitle file exists
-    if os.path.exists(subtitle_file):
-        result_file = subtitle_file
-    else:
-        result_file = None
+    # Correct known mistakes in the subtitle file
+    correct_known_mistakes(file_path=subtitle_file)
 
-    return result_file
+    return subtitle_file
 
 with gr.Blocks() as iface:
     with gr.Tabs():
