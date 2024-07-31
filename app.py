@@ -890,7 +890,34 @@ def update_input_fields(input_type):
 # Make upper part of the interface as block
 
 def generate_subtitles(audio_file, language):
-    pass
+    # Clear the memory
+    gc.collect()
+
+    output_dir = "subtitles"
+
+    # Ensure output directory exists
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Convert the audio file to WAV if necessary
+    audio_file = convert_to_wav(audio_file)
+
+    # Define the command for generating subtitles
+    whisper_command = f"whisper {audio_file} --model small --language {language} --max_line_count=1 --max_line_width=70 --word_timestamps=True --output_format=srt"
+
+    # Run the command
+    os.system(whisper_command)
+
+    # Get the subtitle file
+    subtitle_file = audio_file.replace(".wav", ".srt")
+
+    # Check if the subtitle file exists
+    if os.path.exists(subtitle_file):
+        result_file = subtitle_file
+    else:
+        result_file = None
+
+    return result_file
 
 with gr.Blocks() as iface:
     with gr.Tabs():
@@ -940,9 +967,10 @@ with gr.Blocks() as iface:
                             generate_subtitles_button = gr.Button(value="Generate Subtitles")
 
                 with gr.Column():
-                    subtitles_output = gr.Textbox(label="Generated Subtitles")
+                    subtitles_output = gr.File(label="Generated Subtitles")
 
             generate_subtitles_button.click(generate_subtitles, inputs=[subtitle_audio_file, language], outputs=[subtitles_output])
+
 
 
 if __name__ == "__main__":
