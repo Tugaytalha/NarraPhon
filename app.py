@@ -504,6 +504,30 @@ def gen_from_text(audio_file, text, speed, alpha, beta, diffusion_steps, embeddi
 
     return "output.zip", "temp.wav", message
 
+def generate_from_srt(audio_file, srt_file, speed, alpha, beta, diffusion_steps, embedding_scale):
+    # Load the SRT file
+    subs = pysrt.open(srt_file)
+
+    synthesized_audio_list = []
+    for i in range(len(subs)):
+        # Generate speech for the subtitle text
+        voice, message = generate_speech(audio_file, subs[i].text, speed, alpha, beta, diffusion_steps, embedding_scale)
+        synthesized_audio_list.append(voice[1])
+
+        # If this is not the last subtitle, add silence for the duration between the end of the current subtitle and the start of the next subtitle
+        if i < len(subs) - 1:
+            silence_duration = (subs[i+1].start.ordinal - subs[i].end.ordinal) / 1000  # Convert from milliseconds to seconds
+            silence = np.zeros(int(silence_duration * 24000))  # 24000 is the sample rate
+            synthesized_audio_list.append(silence)
+
+    # Concatenate all the generated speeches and silences to create the final speech
+    synthesized_audio = np.concatenate(synthesized_audio_list)
+
+    # Convert to 16-bit PCM
+    synthesized_audio = (synthesized_audio * 32767).astype(np.int16)
+
+    return (24000, synthesized_audio), "Success: Speech generated successfully."
+
 
 def atoi(text):
     return int(text) if text.isdigit() else text
@@ -578,6 +602,9 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
             with open(text_file, "r") as f:
                 text_input = f.read()
             result = gen_from_text(audio_file, text_input, speed, alpha, beta, diffusion_steps, embedding_scale)
+
+        elif text_input_type == "SRT File":
+            result = generate_from_srt(audio_file, text_file, speed, alpha, beta, diffusion_steps, embedding_scale)
 
         elif text_input_type.startswith("ZIP File"):
 
@@ -655,6 +682,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, zip_file,
         if os.path.exists("extracted_notes"):
             # delete recursively and force delete
             os.system("rm -rf extracted_notes || true")
+
         return result
 
     else:
@@ -962,6 +990,7 @@ with gr.Blocks() as iface:
                     txt_radio = gr.Radio(["Plain Text", "TXT File", "ZIP File", "PowerPoint File"], label="Input Type")
                     txt_box = gr.Textbox(lines=2, placeholder="Enter text to synthesize", label="Text to Synthesize", visible=False)
                     txt_inp = gr.File(label="Upload a TXT file", type="filepath", file_types=[".txt"], visible=False)
+                    srt_inp = gr.File(label="Upload an SRT file to generate from subtitles", type="filepath", file_types=[".srt"], visible=False)
                     zip_inp = gr.File(label="Upload a ZIP file", type="filepath", file_types=[".zip"], visible=False)
                     pptx_inp = gr.File(label="Upload a PowerPoint file to generate from notes", type="filepath", file_types=[".pptx"], visible=False)
 
