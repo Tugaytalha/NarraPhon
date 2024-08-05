@@ -918,17 +918,25 @@ def extract_notes(pptx_path, output_dir, zip_file_path):
 
 def update_input_fields(input_type):
     if input_type == "Plain Text":
-        return gr.update(visible=True), gr.update(visible=False), gr.update(visible=False), gr.update(
-            visible=False), gr.update(visible=True), gr.update(visible=True)
+        return (gr.update(visible=True), gr.update(visible=False), gr.update(visible=False),
+                gr.update(visible=False), gr.update(visible=False),
+                gr.update(visible=True), gr.update(visible=True))
     elif input_type == "TXT File":
-        return gr.update(visible=False), gr.update(visible=True), gr.update(visible=False), gr.update(
-            visible=False), gr.update(visible=True), gr.update(visible=True)
+        return (gr.update(visible=False), gr.update(visible=True), gr.update(visible=False),
+                gr.update(visible=False), gr.update(visible=False),
+                gr.update(visible=True), gr.update(visible=True))
+    elif input_type == "SRT File":
+        return (gr.update(visible=False), gr.update(visible=False), gr.update(visible=True),
+                gr.update(visible=False), gr.update(visible=False),
+                gr.update(visible=True), gr.update(visible=True))
     elif input_type == "ZIP File":
-        return gr.update(visible=False), gr.update(visible=False), gr.update(visible=True), gr.update(
-            visible=False), gr.update(visible=False), gr.update(visible=True)
+        return (gr.update(visible=False), gr.update(visible=False), gr.update(visible=False),
+                gr.update(visible=True), gr.update(visible=False),
+                gr.update(visible=False), gr.update(visible=True))
     elif input_type == "PowerPoint File":
-        return gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(
-            visible=True), gr.update(visible=False), gr.update(visible=True)
+        return (gr.update(visible=False), gr.update(visible=False), gr.update(visible=False),
+                gr.update(visible=False), gr.update(visible=True),
+                gr.update(visible=False), gr.update(visible=True))
 
 
 # iface = gr.Interface(
@@ -987,7 +995,7 @@ with gr.Blocks() as iface:
                 # define inputs
                 with gr.Column():
                     audio_file = gr.Audio(label="Upload a reference audio file", type="filepath")
-                    txt_radio = gr.Radio(["Plain Text", "TXT File", "ZIP File", "PowerPoint File"], label="Input Type", value="Plain Text")
+                    txt_radio = gr.Radio(["Plain Text", "TXT File", "SRT File", "ZIP File", "PowerPoint File"], label="Input Type", value="Plain Text")
                     txt_box = gr.Textbox(lines=2, placeholder="Enter text to synthesize", label="Text to Synthesize", visible=True)
                     txt_inp = gr.File(label="Upload a TXT file", type="filepath", file_types=[".txt"], visible=False)
                     srt_inp = gr.File(label="Upload an SRT file to generate from subtitles", type="filepath", file_types=[".srt"], visible=False)
@@ -1012,7 +1020,7 @@ with gr.Blocks() as iface:
                     zip_output = gr.File(label="Download ZIP file", visible=False)
                     message_output = gr.Textbox(label="Message")
 
-            txt_radio.change(update_input_fields, inputs=[txt_radio], outputs=[txt_box, txt_inp, zip_inp, pptx_inp, audio_output, zip_output])
+            txt_radio.change(update_input_fields, inputs=[txt_radio], outputs=[txt_box, txt_inp, srt_inp, zip_inp, pptx_inp, audio_output, zip_output])
 
             submit_button.click(parse_generate,
                                 inputs=[audio_file, txt_radio, txt_box, txt_inp, zip_inp, pptx_inp, speed_slider, alpha_slider, beta_slider, diffusion_slider, embedding_slider],
