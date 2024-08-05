@@ -987,8 +987,8 @@ with gr.Blocks() as iface:
                 # define inputs
                 with gr.Column():
                     audio_file = gr.Audio(label="Upload a reference audio file", type="filepath")
-                    txt_radio = gr.Radio(["Plain Text", "TXT File", "ZIP File", "PowerPoint File"], label="Input Type")
-                    txt_box = gr.Textbox(lines=2, placeholder="Enter text to synthesize", label="Text to Synthesize", visible=False)
+                    txt_radio = gr.Radio(["Plain Text", "TXT File", "ZIP File", "PowerPoint File"], label="Input Type", value="Plain Text")
+                    txt_box = gr.Textbox(lines=2, placeholder="Enter text to synthesize", label="Text to Synthesize", visible=True)
                     txt_inp = gr.File(label="Upload a TXT file", type="filepath", file_types=[".txt"], visible=False)
                     srt_inp = gr.File(label="Upload an SRT file to generate from subtitles", type="filepath", file_types=[".srt"], visible=False)
                     zip_inp = gr.File(label="Upload a ZIP file", type="filepath", file_types=[".zip"], visible=False)
