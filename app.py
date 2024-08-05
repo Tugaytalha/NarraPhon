@@ -52,6 +52,7 @@ from pydub import AudioSegment
 from pptx import Presentation
 import zipfile
 import os
+from num2words import num2words
 
 textclenaer = TextCleaner()
 
@@ -392,6 +393,19 @@ def split_text(text, max_length=50):
     return chunks
 
 
+def convert_numbers_to_words(text):
+    # Regular expression to find numbers in the text
+    number_pattern = re.compile(r'\b\d+\b')
+
+    # Function to replace each number with its word equivalent
+    def replace_number(match):
+        number = int(match.group(0))
+        return num2words(number)
+
+    # Replace all numbers in the text using the regular expression
+    result_text = re.sub(number_pattern, replace_number, text)
+    return result_text
+
 def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_steps, embedding_scale,
                          file_encoding="utf-8"):
     # Use glob to find all .txt files recursively
@@ -417,6 +431,7 @@ def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_st
         try:
             with open(txt_file, 'r', encoding=file_encoding) as file:
                 content = file.read()
+                content = convert_numbers_to_words(content)
                 content = content.replace("-", " ")
                 output = generate_speech(audio_file, content, speed, alpha, beta, diffusion_steps, embedding_scale)
 
@@ -485,7 +500,7 @@ def gen_from_text(audio_file, text, speed, alpha, beta, diffusion_steps, embeddi
     # Zip the generated files
     with zipfile.ZipFile("output.zip", 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write("output.mp3")
-        zipf.write("output.srt")
+        # zipf.write("output.srt")
 
     return "output.zip", "temp.wav", message
 
