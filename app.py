@@ -509,6 +509,15 @@ def gen_from_srt(audio_file, srt_file, speed, alpha, beta, diffusion_steps, embe
     # Load the SRT file
     subs = pysrt.open(srt_file)
 
+    # Merge subtitles that are continuous
+    for i in range(len(subs)-2, -1, -1):
+        if i < len(subs) - 1:
+            if subs[i].end.ordinal == subs[i + 1].start.ordinal:
+                subs[i].text += " " + subs[i + 1].text
+                subs[i].end = subs[i + 1].end
+                subs.pop(i + 1)
+
+
     synthesized_audio_list = []
     for i in range(len(subs)):
         # Generate speech for the subtitle text
@@ -517,10 +526,12 @@ def gen_from_srt(audio_file, srt_file, speed, alpha, beta, diffusion_steps, embe
 
         # If this is not the last subtitle, add silence for the duration between the end of the current subtitle and the start of the next subtitle
         if i < len(subs) - 1:
-            silence_duration = (subs[i + 1].start.ordinal - subs[
-                i].end.ordinal) / 1000  # Convert from milliseconds to seconds
-            silence = np.zeros(int(silence_duration * 24000)).astype(np.int16)
-            synthesized_audio_list.append(silence)
+            # Calculate the length of the output voice
+            voice_duration = len(voice[1]) / voice[0]
+            silence_duration = ((subs[i + 1].start.ordinal - subs[i].start.ordinal) / 1000) - voice_duration
+            if silence_duration > 0:
+                silence = np.zeros(int(silence_duration * 24000)).astype(np.int16)
+                synthesized_audio_list.append(silence)
 
     # Concatenate the synthesized audio
     synthesized_audio = np.concatenate(synthesized_audio_list, axis=0)
@@ -843,16 +854,17 @@ def generate_speech(audio_file, text_input, speed, alpha, beta, diffusion_steps,
                 # Apply the transformation and save the output file
                 tfm.build("temp.wav", "temp2.wav")
 
-            # Slow down with librosa
+            # Slow down with sox
             elif speed < 1:
-                # Load the audio file
-                y, sr = librosa.load("temp.wav", sr=None)  # sr=None ensures the original sampling rate is used
+                # Create a Transformer object
+                tfm = sox.Transformer()
 
-                # Change the speed
-                y_fast = librosa.effects.time_stretch(y, rate=speed)
+                # Set the tempo change (speed change)
+                tfm.tempo(speed)
 
-                # Save the altered audio file
-                sf.write("temp2.wav", y_fast, sr)
+                # Apply the transformation and save the output file
+                tfm.build("temp.wav", "temp2.wav")
+
             # Just create temp2.wav
             else:
                 # Copy the temp file
