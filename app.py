@@ -837,12 +837,8 @@ def generate_speech(audio_file, text_input, speed, alpha, beta, diffusion_steps,
                 # Create a Transformer object
                 tfm = sox.Transformer()
 
-                if speed <= 1.1:
-                    # speed change
-                    tfm.stretch(speed)
-                else:
-                    # Set the tempo change (speed change)
-                    tfm.tempo(speed)
+                # Set the tempo change (speed change)
+                tfm.tempo(speed)
 
                 # Apply the transformation and save the output file
                 tfm.build("temp.wav", "temp2.wav")
@@ -1026,7 +1022,7 @@ with gr.Blocks() as iface:
                         with gr.Column():
                             submit_button = gr.Button(value="Submit")
 
-                    speed_slider = gr.Slider(minimum=0.5, maximum=1.5, value=1.0, label="Speed")
+                    speed_slider = gr.Slider(minimum=0.5, maximum=1.5, value=1.05, label="Speed")
                     alpha_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.3, label="Alpha")
                     beta_slider = gr.Slider(minimum=0.0, maximum=1.0, value=0.7, label="Beta")
                     diffusion_slider = gr.Slider(minimum=1, maximum=10, value=5, label="Diffusion Steps")
