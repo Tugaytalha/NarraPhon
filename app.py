@@ -407,6 +407,7 @@ def convert_numbers_to_words(text):
     result_text = re.sub(number_pattern, replace_number, text)
     return result_text
 
+
 def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_steps, embedding_scale,
                          file_encoding="utf-8"):
     # Use glob to find all .txt files recursively
@@ -503,6 +504,7 @@ def gen_from_text(audio_file, text, speed, alpha, beta, diffusion_steps, embeddi
 
     return "output.zip", "temp.wav", message
 
+
 def gen_from_srt(audio_file, srt_file, speed, alpha, beta, diffusion_steps, embedding_scale):
     # Load the SRT file
     subs = pysrt.open(srt_file)
@@ -515,10 +517,13 @@ def gen_from_srt(audio_file, srt_file, speed, alpha, beta, diffusion_steps, embe
 
         # If this is not the last subtitle, add silence for the duration between the end of the current subtitle and the start of the next subtitle
         if i < len(subs) - 1:
-            silence_duration = (subs[i+1].start.ordinal - subs[i].end.ordinal) / 1000  # Convert from milliseconds to seconds
+            silence_duration = (subs[i + 1].start.ordinal - subs[
+                i].end.ordinal) / 1000  # Convert from milliseconds to seconds
             silence = np.zeros(int(silence_duration * 24000)).astype(np.int16)
             synthesized_audio_list.append(silence)
 
+    # Concatenate the synthesized audio
+    synthesized_audio = np.concatenate(synthesized_audio_list, axis=0)
 
     # Save the generated speech as an MP3 file
     wavfile.write("temp.wav", 24000, synthesized_audio)
@@ -528,7 +533,6 @@ def gen_from_srt(audio_file, srt_file, speed, alpha, beta, diffusion_steps, embe
     # Zip the generated files
     with zipfile.ZipFile("output.zip", 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write("output.mp3")
-
 
     return "output.zip", "temp.wav", message
 
@@ -751,7 +755,8 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
                 image_clip = image_clip.set_audio(audio_clip)
 
                 # Add subtitles
-                generator = lambda txt: TextClip(txt, font=font, fontsize=font_size, color='white', stroke_color='black',
+                generator = lambda txt: TextClip(txt, font=font, fontsize=font_size, color='white',
+                                                 stroke_color='black',
                                                  stroke_width=2.8)
                 subs = SubtitlesClip(subtitle_file, generator)
                 subtitles = SubtitlesClip(subs, generator)
@@ -770,7 +775,6 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
 
     # Concatenate all video clips
     final_video = concatenate_videoclips(video_clips)
-
 
     # Determine thread number
     thread_count = os.cpu_count() - 1 if os.cpu_count() > 1 else 1
@@ -890,6 +894,7 @@ def convert_to_wav(input_file, output_file=None):
 
     return output_file
 
+
 def extract_notes(pptx_path, output_dir, zip_file_path):
     # Create the output directory if it doesn't exist
     if not os.path.exists(output_dir):
@@ -994,6 +999,7 @@ def generate_subtitles(audio_file, language):
 
     return subtitle_file
 
+
 with gr.Blocks() as iface:
     with gr.Tabs():
         with gr.TabItem("Voice Cloning"):
@@ -1001,12 +1007,16 @@ with gr.Blocks() as iface:
                 # define inputs
                 with gr.Column():
                     audio_file = gr.Audio(label="Upload a reference audio file", type="filepath")
-                    txt_radio = gr.Radio(["Plain Text", "TXT File", "SRT File", "ZIP File", "PowerPoint File"], label="Input Type", value="Plain Text")
-                    txt_box = gr.Textbox(lines=2, placeholder="Enter text to synthesize", label="Text to Synthesize", visible=True)
+                    txt_radio = gr.Radio(["Plain Text", "TXT File", "SRT File", "ZIP File", "PowerPoint File"],
+                                         label="Input Type", value="Plain Text")
+                    txt_box = gr.Textbox(lines=2, placeholder="Enter text to synthesize", label="Text to Synthesize",
+                                         visible=True)
                     txt_inp = gr.File(label="Upload a TXT file", type="filepath", file_types=[".txt"], visible=False)
-                    srt_inp = gr.File(label="Upload an SRT file to generate from subtitles", type="filepath", file_types=[".srt"], visible=False)
+                    srt_inp = gr.File(label="Upload an SRT file to generate from subtitles", type="filepath",
+                                      file_types=[".srt"], visible=False)
                     zip_inp = gr.File(label="Upload a ZIP file", type="filepath", file_types=[".zip"], visible=False)
-                    pptx_inp = gr.File(label="Upload a PowerPoint file to generate from notes", type="filepath", file_types=[".pptx"], visible=False)
+                    pptx_inp = gr.File(label="Upload a PowerPoint file to generate from notes", type="filepath",
+                                       file_types=[".pptx"], visible=False)
 
                     with gr.Row():
                         with gr.Column():
@@ -1026,7 +1036,8 @@ with gr.Blocks() as iface:
                     zip_output = gr.File(label="Download ZIP file", visible=False)
                     message_output = gr.Textbox(label="Message")
 
-            txt_radio.change(update_input_fields, inputs=[txt_radio], outputs=[txt_box, txt_inp, srt_inp, zip_inp, pptx_inp, audio_output, zip_output])
+            txt_radio.change(update_input_fields, inputs=[txt_radio],
+                             outputs=[txt_box, txt_inp, srt_inp, zip_inp, pptx_inp, audio_output, zip_output])
 
             submit_button.click(parse_generate,
                                 inputs=[audio_file, txt_radio, txt_box, txt_inp, srt_inp, zip_inp, pptx_inp,
@@ -1046,9 +1057,8 @@ with gr.Blocks() as iface:
                 with gr.Column():
                     subtitles_output = gr.File(label="Generated Subtitles")
 
-            generate_subtitles_button.click(generate_subtitles, inputs=[subtitle_audio_file, language], outputs=[subtitles_output])
-
-
+            generate_subtitles_button.click(generate_subtitles, inputs=[subtitle_audio_file, language],
+                                            outputs=[subtitles_output])
 
 if __name__ == "__main__":
     iface.launch(server_port=7861, share=True)  # server_name="0.0.0.0",
