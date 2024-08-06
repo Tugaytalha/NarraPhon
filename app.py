@@ -837,14 +837,16 @@ def generate_speech(audio_file, text_input, speed, alpha, beta, diffusion_steps,
                 # Create a Transformer object
                 tfm = sox.Transformer()
 
-                # Set the tempo change (speed change)
-                tfm.tempo(speed)
+                if speed <= 1.1:
+                    # speed change
+                    tfm.stretch(speed)
+                else:
+                    # Set the tempo change (speed change)
+                    tfm.tempo(speed)
 
                 # Apply the transformation and save the output file
                 tfm.build("temp.wav", "temp2.wav")
 
-                # Read back with pydub
-                synthesized_audio = AudioSegment.from_file("temp2.wav")
             # Slow down with librosa
             elif speed < 1:
                 # Load the audio file
