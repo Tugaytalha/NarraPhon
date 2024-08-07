@@ -689,7 +689,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, srt_input
             # Delete the PDF file
             os.remove(pptx_inp.replace('.pptx', '.pdf'))
 
-            result = parse_generate(audio_file, "ZIP FileP", None, None, zip_file_path, None, speed, alpha, beta,
+            result = parse_generate(audio_file, "ZIP FileP", None, None, srt_input, zip_file_path, None, speed, alpha, beta,
                                     diffusion_steps,
                                     embedding_scale)
 
