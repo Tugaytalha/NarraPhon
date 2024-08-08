@@ -1071,4 +1071,4 @@ with gr.Blocks() as iface:
                                             outputs=[subtitles_output])
 
 if __name__ == "__main__":
-    iface.launch(server_port=7861, share=True)  # server_name="0.0.0.0",
+    iface.queue().launch(server_port=7861, share=True)  # server_name="0.0.0.0",
