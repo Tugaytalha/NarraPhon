@@ -576,7 +576,7 @@ def correct_known_mistakes(file_path="extracted/generated_subtitle/concatenated.
     # Slash
     correct_mistaken_words(incorrect_words=["-slash-", "slash"], correct_word="/", file_path=file_path)
     # CodeArts
-    correct_mistaken_words(incorrect_words=["Code Arts"], correct_word="CodeArts", file_path=file_path)
+    correct_mistaken_words(incorrect_words=["Code Arts", "codars"], correct_word="CodeArts", file_path=file_path)
     # 6G
     correct_mistaken_words(incorrect_words=["6 G", "6-G"], correct_word="6G", file_path=file_path)
     # 5G
