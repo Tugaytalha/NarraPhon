@@ -710,7 +710,8 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, srt_input
 
 def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.srt",
                            incorrect_words=["heal way", "hue-away", "Woway", "wo way", "hueaway", "hueAway", "whoaway",
-                                            "huawei",
+                                            "huawei", "worldway", "who-away", "world way", "world away",
+                                            "Heway", "heaway", "he way", "he away",
                                             "raw away", "raw way", "raw-way", "raw-away", "who away", "who-away"],
                            correct_word="Huawei"):
     # Read the content of the SRT file
