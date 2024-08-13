@@ -412,8 +412,8 @@ def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_st
                          file_encoding="utf-8"):
     # Use glob to find all .txt files recursively
     txt_files = glob.glob(os.path.join(directory, '**', '*.txt'), recursive=True)
-
     txt_files.sort(key=natural_keys)
+
     # Save a concatenated text file
     with open(directory + "/concatenated.txt", "w", encoding=file_encoding) as file:
         for txt_file in txt_files:
@@ -471,13 +471,15 @@ def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_st
 
         print("Audio generated")
 
-    # Concatenate the generated files
+    # Concatenate the generated audio files
     generated_files = glob.glob(os.path.join(directory + "/generated_voices", '**', '*.mp3'), recursive=True)
     # Sort the generated files
     generated_files.sort(key=natural_keys)
     audio = AudioSegment.from_file(generated_files[0])
+    # Calculate the duration of the first audio file
     for file in generated_files[1:]:
         audio += AudioSegment.from_file(file)
+
 
     # Export the concatenated audio
     audio.export(directory + "/concatenated.mp3", format="mp3")
@@ -766,14 +768,14 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
                 # Set the audio to the image
                 image_clip = image_clip.set_audio(audio_clip)
 
-                # Add subtitles
-                generator = lambda txt: TextClip(txt, font=font, fontsize=font_size, color='white',
-                                                 stroke_color='black',
-                                                 stroke_width=2.8)
-                subs = SubtitlesClip(subtitle_file, generator)
-                subtitles = SubtitlesClip(subs, generator)
-
-                image_clip = CompositeVideoClip([image_clip, subtitles.set_position(("center", 0.9), relative=True)])
+                # # Add subtitles
+                # generator = lambda txt: TextClip(txt, font=font, fontsize=font_size, color='white',
+                #                                  stroke_color='black',
+                #                                  stroke_width=2.8)
+                # subs = SubtitlesClip(subtitle_file, generator)
+                # subtitles = SubtitlesClip(subs, generator)
+                #
+                # image_clip = CompositeVideoClip([image_clip, subtitles.set_position(("center", 0.9), relative=True)])
 
             else:
                 # Set the duration of the image to 3 seconds
@@ -819,6 +821,8 @@ def generate_speech(audio_file, text_input, speed, alpha, beta, diffusion_steps,
             for chunk in text_chunks:
                 # Replace Huawei to Whoaway
                 chunk = chunk.replace("Huawei", "Whoaway")
+                chunk = chunk.replace("huawei", "whoaway")
+                chunk = chunk.replace("HUAWEI", "whoaway")
                 chunk = chunk.replace("-", " ")
                 chunk = convert_numbers_to_words(chunk)
                 pFlag = False
