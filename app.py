@@ -408,6 +408,40 @@ def convert_numbers_to_words(text):
     return result_text
 
 
+def concatenate_srt_files(srt_files, output_file="./extracted/concatenated.srt"):
+    """
+    Concatenate multiple SRT files into a single SRT file.
+
+    :param srt_files: List of paths to the SRT files to be concatenated.
+    :param output_file: Path to the output SRT file.
+    """
+    final_subtitles = pysrt.SubRipFile()
+    current_time_offset = pysrt.SubRipTime(0, 0, 0, 0)
+    last_count = 0
+
+    for srt_file in srt_files:
+        subs = pysrt.open(srt_file)
+
+        for sub in subs:
+            # Update the start and end times of the subtitle
+            sub.shift(seconds=current_time_offset.seconds,
+                      minutes=current_time_offset.minutes,
+                      hours=current_time_offset.hours,
+                      milliseconds=current_time_offset.milliseconds)
+            # Update the subtitle number
+            sub.index = last_count + sub.index
+            # Append the subtitle to the final list
+            final_subtitles.append(sub)
+
+        # Update the current time offset
+        last_sub = subs[-1]
+        current_time_offset = last_sub.end
+
+        # Update the last count
+        last_count = final_subtitles[-1].index
+
+    final_subtitles.save(output_file, encoding='utf-8')
+
 def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_steps, embedding_scale,
                          file_encoding="utf-8"):
     # Use glob to find all .txt files recursively
@@ -480,6 +514,13 @@ def generate_recursively(audio_file, directory, speed, alpha, beta, diffusion_st
     for file in generated_files[1:]:
         audio += AudioSegment.from_file(file)
 
+
+    # Read and sort the generated subtitle files
+    generated_files = glob.glob(os.path.join(directory + "/generated_subtitle", '**', '*.srt'), recursive=True)
+    generated_files.sort(key=natural_keys)
+
+    # Concatenate the generated subtitle files
+    concatenate_srt_files(generated_files, directory + "/concatenated.srt")
 
     # Export the concatenated audio
     audio.export(directory + "/concatenated.mp3", format="mp3")
