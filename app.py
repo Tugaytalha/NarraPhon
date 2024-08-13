@@ -429,7 +429,8 @@ def concatenate_srt_files(srt_files, output_file="./extracted/concatenated.srt")
                       hours=current_time_offset.hours,
                       milliseconds=current_time_offset.milliseconds)
             # Update the subtitle number
-            sub.index = last_count + sub.index
+            last_count += 1
+            sub.index = last_count
             # Append the subtitle to the final list
             final_subtitles.append(sub)
 
