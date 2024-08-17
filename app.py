@@ -434,9 +434,9 @@ def concatenate_srt_files(srt_files, output_file="./extracted/concatenated.srt")
             # Append the subtitle to the final list
             final_subtitles.append(sub)
 
-        # Update the current time offset
+        # Update the current time offset to the end time of the last subtitle + 1 second
         last_sub = subs[-1]
-        current_time_offset = last_sub.end
+        current_time_offset = last_sub.end + pysrt.SubRipTime(0, 0, 1, 0)
 
         # Update the last count
         last_count = final_subtitles[-1].index
@@ -605,7 +605,7 @@ def natural_keys(text):
     return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
-def correct_known_mistakes(file_path="extracted/generated_subtitle/concatenated.srt"):
+def correct_known_mistakes(file_path="extracted/concatenated.srt"):
     # Huawei
     correct_mistaken_words(file_path=file_path)
     # &
@@ -640,6 +640,8 @@ def correct_known_mistakes(file_path="extracted/generated_subtitle/concatenated.
     # Retry
     correct_mistaken_words(incorrect_words=["REIT"], correct_word="retry", file_path=file_path)
 
+    print("Mistaken words corrected successfully.")
+
 
 def parse_generate(audio_file, text_input_type, text_input, text_file, srt_input, zip_file, pptx_inp,
                    speed, alpha, beta, diffusion_steps, embedding_scale):
@@ -648,7 +650,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, srt_input
 
     output_dir = "extracted"
 
-    ## Delete the generated files if they exist
+    # Delete the generated files if they exist
     if os.path.exists("output.zip"):
         os.remove("output.zip")
     if os.path.exists("generated.zip"):
@@ -752,7 +754,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, srt_input
         return None, None, "Error: Audio file is missing."
 
 
-def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.srt",
+def correct_mistaken_words(file_path="extracted/concatenated.srt",
                            incorrect_words=["heal way", "hue-away", "Woway", "wo way", "hueaway", "hueAway", "whoaway",
                                             "huawei", "worldway", "who-away", "world way", "world away",
                                             "Heway", "heaway", "he way", "he away",
@@ -771,8 +773,6 @@ def correct_mistaken_words(file_path="extracted/generated_subtitle/concatenated.
     # Write the corrected content back to the SRT file
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(corrected_content)
-
-    print("Mistaken words corrected successfully.")
 
 
 def create_video(folder_path="extracted", output_path="extracted/output_video.mp4", font="Huawei-Sans-Bold",
@@ -804,8 +804,8 @@ def create_video(folder_path="extracted", output_path="extracted/output_video.mp
                 # Load audio
                 audio_clip = AudioFileClip(audio)
 
-                # Set the duration of the image to the duration of the audio
-                image_clip = image_clip.set_duration(audio_clip.duration)
+                # Set the duration of the image to the duration of the audio + 1 second
+                image_clip = image_clip.set_duration(audio_clip.duration + 1)
 
                 # Set the audio to the image
                 image_clip = image_clip.set_audio(audio_clip)
