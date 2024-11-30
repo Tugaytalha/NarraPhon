@@ -9,6 +9,7 @@ import gc
 import glob
 import re
 import shutil
+from slide_gen.main import create_presentation as slide_generator
 
 import gradio as gr
 import scipy.io.wavfile as wavfile
@@ -1073,10 +1074,6 @@ def generate_subtitles(audio_file, language):
     correct_known_mistakes(file_path=subtitle_file)
 
     return subtitle_file
-
-# TODO: Import the necessary libraries and delete the following line
-def slide_generator(prompt):
-    return "output.pptx"
 
 def prompt_to_video(audio_file, prompt, speed, alpha, beta, diffusion_steps, embedding_scale):
     """
