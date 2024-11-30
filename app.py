@@ -8,6 +8,7 @@
 import gc
 import glob
 import re
+import shutil
 
 import gradio as gr
 import scipy.io.wavfile as wavfile
@@ -739,6 +740,23 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, srt_input
                                     diffusion_steps,
                                     embedding_scale)
 
+        elif text_input_type == "Prompt":
+            print("Generating speech from prompt...")
+            # Create output directory if it doesn't exist
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+
+            print("Generating speech...")
+            # Move pptx file to extracted directory
+            shutil.move(pptx_inp, output_dir)
+
+            print("Generating speech recursively...")
+            # Update pptx_inp to the new path
+            pptx_inp = os.path.join(output_dir, os.path.basename(pptx_inp))
+
+            print("Extracting notes...")
+            result = parse_generate(audio_file, "PowerPoint File", None, None, srt_input, zip_file, pptx_inp, speed, alpha, beta, diffusion_steps, embedding_scale)
+
         # Delete the generated files if they exist
         if os.path.exists("output.mp3"):
             os.remove("output.mp3")
@@ -1056,6 +1074,41 @@ def generate_subtitles(audio_file, language):
 
     return subtitle_file
 
+# TODO: Import the necessary libraries and delete the following line
+def slide_generator(prompt):
+    return "output.pptx"
+
+def prompt_to_video(prompt, speed, alpha, beta, diffusion_steps, embedding_scale):
+    """
+    Handles the entire process of generating a video from a prompt using the existing parse_generate function.
+    """
+    print("Generating video from prompt...")
+    try:
+        print("Generating PowerPoint from prompt...")
+        pptx_path = slide_generator(prompt)  # Generate PowerPoint from prompt
+        print("PowerPoint generated")
+        if pptx_path.endswith(".pptx"):
+            print("Generating video from PowerPoint...")
+            # Use parse_generate with the PowerPoint file
+            return parse_generate(
+                audio_file=None,  # No reference audio required
+                text_input_type="Prompt",
+                text_input=None,
+                text_file=None,
+                srt_input=None,
+                zip_file=None,
+                pptx_inp=pptx_path,
+                speed=speed,
+                alpha=alpha,
+                beta=beta,
+                diffusion_steps=diffusion_steps,
+                embedding_scale=embedding_scale
+            )
+        else:
+            return None, None, f"Error: slide_generator did not return a valid PPTX path."
+    except Exception as e:
+        return None, None, f"Error generating video: {str(e)}"
+
 
 with gr.Blocks() as iface:
     with gr.Tabs():
@@ -1116,6 +1169,45 @@ with gr.Blocks() as iface:
 
             generate_subtitles_button.click(generate_subtitles, inputs=[subtitle_audio_file, language],
                                             outputs=[subtitles_output])
+
+        with gr.TabItem("Prompt to Video"):
+            with gr.Row():
+                with gr.Column():
+                    # Input for the prompt
+                    prompt_input = gr.Textbox(
+                        lines=4,
+                        placeholder="Enter a detailed prompt to generate slides",
+                        label="Prompt"
+                    )
+                    # Sliders for customization
+                    speed_slider = gr.Slider(0.5, 1.5, value=1.05, label="Speed")
+                    alpha_slider = gr.Slider(0.0, 1.0, value=0.3, label="Alpha")
+                    beta_slider = gr.Slider(0.0, 1.0, value=0.7, label="Beta")
+                    diffusion_slider = gr.Slider(1, 10, value=5, label="Diffusion Steps")
+                    embedding_slider = gr.Slider(0.0, 3.0, value=1.0, label="Embedding Scale")
+
+                    # Submit button
+                    generate_zip_button = gr.Button(value="Generate Video")
+
+                with gr.Column():
+                    # Outputs
+                    zip_output = gr.File(label="Download Generated ZIP")
+                    message_output = gr.Textbox(label="Message", interactive=False)
+
+            # Connect the button to the new function
+            generate_zip_button.click(
+                prompt_to_video,
+                inputs=[
+                    prompt_input,  # Prompt
+                    speed_slider,  # Speed
+                    alpha_slider,  # Alpha
+                    beta_slider,  # Beta
+                    diffusion_slider,  # Diffusion steps
+                    embedding_slider,  # Embedding scale
+                ],
+                outputs=[zip_output, message_output]  # Output ZIP file and message
+            )
+
 
 if __name__ == "__main__":
     iface.queue().launch(server_port=7861, share=True)  # server_name="0.0.0.0",
