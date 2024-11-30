@@ -9,7 +9,7 @@ import gc
 import glob
 import re
 import shutil
-from slide_gen.main import create_presentation as slide_generator
+from slide_main import create_presentation as slide_generator
 
 import gradio as gr
 import scipy.io.wavfile as wavfile

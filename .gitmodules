@@ -1,0 +1,3 @@
+[submodule "Kandinsky-3"]
+	path = Kandinsky-3
+	url = https://github.com/ai-forever/Kandinsky-3.git
