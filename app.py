@@ -1078,7 +1078,7 @@ def generate_subtitles(audio_file, language):
 def slide_generator(prompt):
     return "output.pptx"
 
-def prompt_to_video(prompt, speed, alpha, beta, diffusion_steps, embedding_scale):
+def prompt_to_video(audio_file, prompt, speed, alpha, beta, diffusion_steps, embedding_scale):
     """
     Handles the entire process of generating a video from a prompt using the existing parse_generate function.
     """
@@ -1091,7 +1091,7 @@ def prompt_to_video(prompt, speed, alpha, beta, diffusion_steps, embedding_scale
             print("Generating video from PowerPoint...")
             # Use parse_generate with the PowerPoint file
             return parse_generate(
-                audio_file=None,  # No reference audio required
+                audio_file=audio_file,  # No reference audio required
                 text_input_type="Prompt",
                 text_input=None,
                 text_file=None,
@@ -1173,6 +1173,9 @@ with gr.Blocks() as iface:
         with gr.TabItem("Prompt to Video"):
             with gr.Row():
                 with gr.Column():
+                    # Input for the reference audio
+                    audio_file = gr.Audio(label="Upload a reference audio file", type="filepath")
+
                     # Input for the prompt
                     prompt_input = gr.Textbox(
                         lines=4,
@@ -1198,6 +1201,7 @@ with gr.Blocks() as iface:
             generate_zip_button.click(
                 prompt_to_video,
                 inputs=[
+                    audio_file,  # Reference audio
                     prompt_input,  # Prompt
                     speed_slider,  # Speed
                     alpha_slider,  # Alpha
