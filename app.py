@@ -1109,6 +1109,47 @@ def prompt_to_video(audio_file, prompt, speed, alpha, beta, diffusion_steps, emb
 
 with gr.Blocks() as iface:
     with gr.Tabs():
+        with gr.TabItem("Prompt to Video"):
+            with gr.Row():
+                with gr.Column():
+                    # Input for the reference audio
+                    audio_file = gr.Audio(label="Upload a reference audio file", type="filepath")
+
+                    # Input for the prompt
+                    prompt_input = gr.Textbox(
+                        lines=4,
+                        placeholder="Enter a detailed prompt to generate slides",
+                        label="Prompt"
+                    )
+                    # Sliders for customization
+                    speed_slider = gr.Slider(0.5, 1.5, value=1.05, label="Speed")
+                    alpha_slider = gr.Slider(0.0, 1.0, value=0.3, label="Alpha")
+                    beta_slider = gr.Slider(0.0, 1.0, value=0.7, label="Beta")
+                    diffusion_slider = gr.Slider(1, 10, value=5, label="Diffusion Steps")
+                    embedding_slider = gr.Slider(0.0, 3.0, value=1.0, label="Embedding Scale")
+
+                    # Submit button
+                    generate_zip_button = gr.Button(value="Generate Video")
+
+                with gr.Column():
+                    # Outputs
+                    zip_output = gr.File(label="Download Generated ZIP")
+                    message_output = gr.Textbox(label="Message", interactive=False)
+
+            # Connect the button to the new function
+            generate_zip_button.click(
+                prompt_to_video,
+                inputs=[
+                    audio_file,  # Reference audio
+                    prompt_input,  # Prompt
+                    speed_slider,  # Speed
+                    alpha_slider,  # Alpha
+                    beta_slider,  # Beta
+                    diffusion_slider,  # Diffusion steps
+                    embedding_slider,  # Embedding scale
+                ],
+                outputs=[zip_output, message_output]  # Output ZIP file and message
+            )
         with gr.TabItem("Voice Cloning"):
             with gr.Row():
                 # define inputs
@@ -1167,47 +1208,7 @@ with gr.Blocks() as iface:
             generate_subtitles_button.click(generate_subtitles, inputs=[subtitle_audio_file, language],
                                             outputs=[subtitles_output])
 
-        with gr.TabItem("Prompt to Video"):
-            with gr.Row():
-                with gr.Column():
-                    # Input for the reference audio
-                    audio_file = gr.Audio(label="Upload a reference audio file", type="filepath")
 
-                    # Input for the prompt
-                    prompt_input = gr.Textbox(
-                        lines=4,
-                        placeholder="Enter a detailed prompt to generate slides",
-                        label="Prompt"
-                    )
-                    # Sliders for customization
-                    speed_slider = gr.Slider(0.5, 1.5, value=1.05, label="Speed")
-                    alpha_slider = gr.Slider(0.0, 1.0, value=0.3, label="Alpha")
-                    beta_slider = gr.Slider(0.0, 1.0, value=0.7, label="Beta")
-                    diffusion_slider = gr.Slider(1, 10, value=5, label="Diffusion Steps")
-                    embedding_slider = gr.Slider(0.0, 3.0, value=1.0, label="Embedding Scale")
-
-                    # Submit button
-                    generate_zip_button = gr.Button(value="Generate Video")
-
-                with gr.Column():
-                    # Outputs
-                    zip_output = gr.File(label="Download Generated ZIP")
-                    message_output = gr.Textbox(label="Message", interactive=False)
-
-            # Connect the button to the new function
-            generate_zip_button.click(
-                prompt_to_video,
-                inputs=[
-                    audio_file,  # Reference audio
-                    prompt_input,  # Prompt
-                    speed_slider,  # Speed
-                    alpha_slider,  # Alpha
-                    beta_slider,  # Beta
-                    diffusion_slider,  # Diffusion steps
-                    embedding_slider,  # Embedding scale
-                ],
-                outputs=[zip_output, message_output]  # Output ZIP file and message
-            )
 
 
 if __name__ == "__main__":
