@@ -55,7 +55,7 @@ class LLMClient:
                 top_p=top_p,
                 stream=False
             )
-            print(f"Generated text: {completion.choices[0].message.content}")
+            # print(f"Generated text: {completion.choices[0].message.content}")
             
             return completion.choices[0].message.content
         

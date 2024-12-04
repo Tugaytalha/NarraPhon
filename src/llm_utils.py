@@ -87,7 +87,11 @@ def llm_generate_text(
             text = text.replace('\n', '')
 
         # Generate speaker notes
-        notes_query = f"Generate speaker notes for the slide titled '{title}'. Do not include introductory sentences like 'content may include, speaker notes may include etc.'. The notes should expand on the slide content, providing additional context and information in continuous text format. Avoid instructions or suggestions for speaking or presenting. Do not keep it too long."
+        notes_query = (f"Generate speaker notes for the slide titled '{title}'. Do not include introductory sentences "
+                       f"like 'content may include, speaker notes may include etc.'. The notes should expand on the "
+                       f"slide content, providing additional context and information in continuous text format. Avoid "
+                       f"instructions or suggestions for speaking or presenting. Do not keep it too long. Don't use "
+                       f"punctuations except point and comma. Don't use points or comma in numbers")
         notes = llm_generate(notes_query)
         if prefix in notes.lower():
             notes = notes[notes.lower().index(prefix)+len(prefix):]

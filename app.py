@@ -747,6 +747,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, srt_input
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
 
+            print("output_dir: ", output_dir, "pptx_inp: ", pptx_inp)
             print("Generating speech...")
             # Move pptx file to extracted directory
             shutil.move(pptx_inp, output_dir)
@@ -755,6 +756,7 @@ def parse_generate(audio_file, text_input_type, text_input, text_file, srt_input
             # Update pptx_inp to the new path
             pptx_inp = os.path.join(output_dir, os.path.basename(pptx_inp))
 
+            print("pptx_inp: ", pptx_inp)
             print("Extracting notes...")
             result = parse_generate(audio_file, "PowerPoint File", None, None, srt_input, zip_file, pptx_inp, speed, alpha, beta, diffusion_steps, embedding_scale)
 

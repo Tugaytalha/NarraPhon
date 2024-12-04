@@ -35,10 +35,7 @@ def create_presentation(description: str) -> str:
         output_dir=output_dir,
     )
 
-    if __name__ == "__main__":
-        return f'{output_dir}/presentation.pptx'
-
-    return f'./slide_gen/{output_dir}/presentation.pptx'
+    return f'{output_dir}/presentation.pptx'
 
 def main():
     # Example description
