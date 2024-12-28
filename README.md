@@ -1,6 +1,39 @@
-# NarraPhon: A Text-to-Speech System
+# NarraPhon: Automated Generation of Educational Videos from PowerPoint Slides
 
-NarraPhon is a text-to-speech (TTS) project that leverages the power of StyleTTS2 and Whisper models to generate natural-sounding speech from text input. This README will guide you through setting up the necessary environment and running the project.
+NarraPhon is a system designed to automatically convert PowerPoint (.pptx) presentations into engaging educational videos. It leverages AI technologies, including the StyleTTS2 text-to-speech model and the Whisper speech recognition model, to generate natural-sounding audio narrations and synchronized subtitles. This project aims to simplify the creation of multimedia educational content, making it more accessible to educators and learners alike.
+
+## Project Description
+
+This project addresses the challenge of efficiently converting existing PowerPoint-based educational materials into video formats. Creating educational videos often requires significant time, resources, and technical expertise in video editing. NarraPhon automates this process, enabling educators to easily transform their presentations into dynamic and accessible video content.
+
+**Key Features:**
+
+-   **Automated Video Generation:** Converts PowerPoint slides into video format with synchronized audio and optional subtitles.
+-   **High-Quality Speech Synthesis:** Utilizes the StyleTTS2 model to generate natural-sounding speech from slide notes or content, with customizable voice styles and parameters.
+-   **Subtitle Generation:** Employs the Whisper model for automatic speech recognition to create accurate and synchronized subtitles, enhancing accessibility.
+-   **Modular Architecture:** Designed with modular components (Extraction, Speech Generation, Subtitle Generation, Video/Audio Composition) for maintainability and scalability.
+-   **User-Friendly Interface:** Provides a Gradio-based web interface for easy file upload, parameter customization, and video generation.
+-   **Efficient Content Creation:** Significantly reduces the time and effort required to produce educational videos compared to manual methods.
+
+**Motivation:**
+
+The increasing demand for online learning resources necessitates efficient content creation methods. This project is motivated by the need to:
+
+-   **Enhance Accessibility:** Make educational content available to a wider audience, including those who prefer video-based learning.
+-   **Improve Engagement:** Offer a more dynamic and engaging learning experience compared to static slides.
+-   **Save Time and Resources:** Reduce the manual effort involved in video production.
+-   **Increase Content Reach:** Facilitate the distribution of educational materials on various online platforms.
+
+**Potential Impact:**
+
+NarraPhon has the potential to:
+
+-   **Revolutionize educational content creation:** By providing an easy-to-use tool for transforming PowerPoint presentations into videos.
+-   **Democratize video production:** Enable educators with limited video editing experience to create high-quality videos.
+-   **Support diverse learning styles:** Cater to visual and auditory learners.
+-   **Expand the reach of educational materials:** Facilitate sharing across digital platforms.
+
+For a more in-depth look at the project's architecture, implementation details, and code examples, please refer to the [project report](link to your report if you have one).
 
 ## Prerequisites
 
