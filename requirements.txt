@@ -191,3 +191,4 @@ webencodings==0.5.1
 webrtcvad==2.0.10
 websockets==11.0.3
 XlsxWriter==3.2.0
+groq
