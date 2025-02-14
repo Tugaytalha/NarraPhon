@@ -93,6 +93,7 @@ sudo apt-get install espeak-ng
 sudo apt-get install ffmpeg
 apt install poppler-utils
 sudo apt-get install libreoffice
+apt install unzip
 ```
 
 ### 4. Download StyleTTS2 Model and Reference Audio
